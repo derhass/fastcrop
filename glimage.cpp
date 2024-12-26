@@ -66,18 +66,18 @@ void CGLImage::reset() noexcept
 
 bool CGLImage::create(const CImage& img) noexcept
 {
-	unsigned w,h,c,bpc;
 	const void *data;
 	GLenum ifmt,fmt,dtype;
 
 	drop();
-	data = img.getData(w,h,c,bpc);
+	data = img.getData();
+	const TImageInfo& info = img.getInfo();
 	ifmt = GL_NONE;
 	fmt = GL_NONE;
 	dtype = GL_NONE;
-	if (bpc == 1) {
+	if (info.bytesPerChannel == 1) {
 		dtype = GL_UNSIGNED_BYTE;
-		switch(c) {
+		switch(info.channels) {
 			case 1:
 				ifmt = GL_R8;
 				fmt = GL_RED;
@@ -95,9 +95,9 @@ bool CGLImage::create(const CImage& img) noexcept
 				fmt = GL_RGBA;
 				break;
 		}
-	} else if (bpc == 2) {
+	} else if (info.bytesPerChannel == 2) {
 		dtype = GL_UNSIGNED_SHORT;
-		switch(c) {
+		switch(info.channels) {
 			case 1:
 				ifmt = GL_R16;
 				fmt = GL_RED;
@@ -122,7 +122,7 @@ bool CGLImage::create(const CImage& img) noexcept
 		return false;
 	}
 
-	createTex((GLsizei)w,(GLsizei)h, ifmt);
+	createTex((GLsizei)info.width,(GLsizei)info.height, ifmt);
 	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, fmt, dtype, data);
 	glBindTexture(GL_TEXTURE_2D, 0);
 	return true;

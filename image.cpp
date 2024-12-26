@@ -30,9 +30,9 @@ CImage& CImage::operator=(const CImage& other) noexcept
 		return *this;
 	}
 
-	allocate(other.width, other.height, other.channels, other.bytesPerChannel);
+	allocate(other.info);
 	if (data && other.data) {
-		memcpy(data, other.data, getDataSize());
+		memcpy(data, other.data, other.info.getDataSize());
 	}
 	return *this;
 }
@@ -43,7 +43,7 @@ CImage& CImage::operator=(CImage&& other) noexcept
 		return *this;
 	}
 
-	allocate(other.width, other.height, other.channels, other.bytesPerChannel);
+	allocate(other.info);
 	if (data && other.data) {
 		data = other.data;
 		other.data = NULL;
@@ -64,19 +64,16 @@ void CImage::dropData() noexcept
 	}
 }
 
-void CImage::setFormat(unsigned w, unsigned h, unsigned c, unsigned bpc) noexcept
+void CImage::setFormat(const TImageInfo& newInfo) noexcept
 {
 	dropData();
-	width = w;
-	height = h;
-	channels = c;
-	bytesPerChannel = bpc;
+	info = newInfo;
 }
 
-bool CImage::allocate(unsigned w, unsigned h, unsigned c, unsigned bpc) noexcept
+bool CImage::allocate(const TImageInfo& newInfo) noexcept
 {
-	setFormat(w,h,c,bpc);
-	size_t s = getDataSize();
+	setFormat(newInfo);
+	size_t s = info.getDataSize();
 	if (s > 0) {
 		data = calloc(s, 1);
 	}
@@ -87,68 +84,32 @@ void CImage::reset() noexcept
 {
 	dropData();
 
-	width = 0;
-	height = 0;
-	channels = 0;
-	bytesPerChannel = 0;
+	info.reset();
 }
 
-bool CImage::isValidDims() const noexcept
-{
-	if (!width || !height || !channels || !bytesPerChannel || channels > 4 || bytesPerChannel > 4 || bytesPerChannel == 3) {
-		return false;
-	}
-
-	return true;
-}
-
-size_t CImage::getDataSize(size_t maxSize) const noexcept
-{
-	if (!isValidDims()) {
-		return 0;
-	}
-
-	size_t s = maxSize;
-	s /= bytesPerChannel;
-	s /= channels;
-	s /= height;
-	if (s < width) {
-		return 0;
-	}
-	return s * height * channels * bytesPerChannel;
-}
-
-const void* CImage::getData(unsigned&w, unsigned& h, unsigned& c, unsigned& bpc) const noexcept
+const void* CImage::getData() const noexcept
 {
 	if (!hasData()) {
-		w = 0;
-		h = 0;
-		c = 0;
-		bpc = 0;
 		return NULL;
 	}
 
-	w = width;
-	h = height;
-	c = channels;
-	bpc = bytesPerChannel;
 	return data;
 }
 
 bool CImage::hasData() const noexcept
 {
-	return (data && isValidDims());
+	return (data && info.isValid());
 }
 
-bool CImage::makeChecker(unsigned int w, unsigned int h, unsigned int c) noexcept
+bool CImage::makeChecker(const TImageInfo& newInfo) noexcept
 {
-	if (allocate(w,h,c,1)) {
-		for (unsigned int y=0; y<h; y++) {
-			uint8_t *line = (uint8_t*)data + (w * c * y);
-			for (unsigned int x=0; x<w; x++) {
+	if (allocate(newInfo)) {
+		for (size_t y=0; y<info.height; y++) {
+			uint8_t *line = (uint8_t*)data + (info.width * info.channels * y);
+			for (size_t x=0; x<info.width; x++) {
 				uint8_t val = ((x + y) & 1) ? 255 : 0;
-				for (unsigned int z=0; z<c; z++) {
-					line[x*c + z] = val;
+				for (size_t z=0; z<info.channels; z++) {
+					line[x*info.channels + z] = val;
 				}
 			}
 		}

@@ -27,7 +27,7 @@ bool CRenderer::initGL()
 	bool success = loadPrograms();
 	
 	CImage img;
-	img.makeChecker(16,16,1);
+	img.makeChecker(TImageInfo(16,16,1));
 	success = dummyImg.create(img) && success;
 	glBindTexture(GL_TEXTURE_2D, dummyImg.getTex());
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);

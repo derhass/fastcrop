@@ -5,18 +5,69 @@
 
 const size_t maxImageSize = 1*1024U*1024U*1024U;
 
+struct TImageInfo {
+	size_t width;
+	size_t height;
+	size_t channels;
+	size_t bytesPerChannel;
+
+	TImageInfo() noexcept :
+		width(0),
+		height(0),
+		channels(0),
+		bytesPerChannel(0)
+	{}
+
+	TImageInfo(unsigned w, unsigned h, unsigned c=3, unsigned bpc=1) noexcept :
+		width(w),
+		height(h),
+		channels(c),
+		bytesPerChannel(bpc)
+	{}
+
+	void reset() noexcept
+	{
+		width = 0;
+		height = 0;
+		channels = 0;
+		bytesPerChannel = 0;
+	}
+
+	bool isValid() const noexcept
+	{
+		if (!width || !height || !channels || !bytesPerChannel || channels > 4 || bytesPerChannel > 4 || bytesPerChannel == 3) {
+			return false;
+		}
+
+		return true;
+	}
+
+	size_t getDataSize(size_t maxSize=maxImageSize) const noexcept
+	{
+		if (!isValid()) {
+			return 0;
+		}
+
+		size_t s = maxSize;
+		s /= bytesPerChannel;
+		s /= channels;
+		s /= height;
+		if (s < width) {
+			return 0;
+		}
+		return width * height * channels * bytesPerChannel;
+	}
+};
+
 class CImage {
 	private:
-		unsigned width;
-		unsigned height;
-		unsigned channels;
-		unsigned bytesPerChannel;
+		TImageInfo info;
 
 		void* data;
 
 		void dropData() noexcept;
-		void setFormat(unsigned w, unsigned h, unsigned c, unsigned bpc=1) noexcept;
-		bool allocate(unsigned w, unsigned h, unsigned c, unsigned bpc=1) noexcept;
+		void setFormat(const TImageInfo& newInfo) noexcept;
+		bool allocate(const TImageInfo& newInfo) noexcept;
 
 	public:
 		CImage() noexcept;
@@ -29,11 +80,11 @@ class CImage {
 
 		void reset() noexcept;
 		bool isValidDims() const noexcept;
-		size_t getDataSize(size_t maxSize = maxImageSize) const noexcept; // 0 if invalid
-		const void* getData(unsigned&w, unsigned& h, unsigned& c, unsigned& bpc) const noexcept; // NULL if invalid 
+		const void* getData() const noexcept; // NULL if invalid 
 		bool hasData() const noexcept;
+		const TImageInfo& getInfo() const noexcept {return info;}
 
-		bool makeChecker(unsigned w, unsigned h, unsigned c=3) noexcept;
+		bool makeChecker(const TImageInfo& newInfo) noexcept;
 };
 
 #endif /* !FASTCROP_IMAGE_H */
