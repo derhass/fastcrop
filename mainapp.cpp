@@ -1,6 +1,7 @@
 #include <glad/gl.h>
 #include <GLFW/glfw3.h>
 
+#include "render.h"
 #include "util.h"
 
 #ifdef WITH_IMGUI
@@ -94,6 +95,8 @@ typedef struct {
 	// some gl limits
 	int maxGlTextureSize;
 	int maxGlSize;
+
+	CRenderer renderer;
 } MainApp;
 
 /* flags */
@@ -202,6 +205,10 @@ static void initGLState(MainApp* app, const AppConfig& cfg)
 	}
 	util::info("GL limits: tex size: %d, viewport: %dx%d, framebuffer: %dx%d, using limt: %d",
 			app->maxGlTextureSize, maxViewport[0], maxViewport[1], maxFB[0], maxFB[1], app->maxGlSize);
+
+	if (!app->renderer.initGL()) {
+		util::warn("GL renderer failed to initialize");
+	}
 }
 
 /****************************************************************************
@@ -464,6 +471,7 @@ static void destroyMainApp(MainApp *app)
 	if (app->flags & APP_HAVE_GLFW) {
 		if (app->win) {
 			if (app->flags & APP_HAVE_GL) {
+				app->renderer.dropGL();
 				/* shut down imgui */
 #ifdef WITH_IMGUI
 				if (app->flags & APP_HAVE_IMGUI) {
@@ -493,6 +501,8 @@ drawScene(MainApp *app, AppConfig& cfg)
 
 	glClearColor(cfg.colorBackground[0], cfg.colorBackground[1], cfg.colorBackground[2], cfg.colorBackground[3]);
 	glClear(GL_COLOR_BUFFER_BIT); /* clear the buffers */
+
+	app->renderer.render();
 
 
 #ifdef WITH_IMGUI
