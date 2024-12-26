@@ -9,8 +9,13 @@ CRenderer::CRenderer() noexcept :
 	img(NULL),
 	vaoEmpty(0)
 {
-	for (int p=0; p<(int)RENDER_PROGRAMS_COUNT; p++) {
-		program[p] = 0;
+	int i;
+	for (i=0; i<(int)RENDER_PROGRAMS_COUNT; i++) {
+		program[i] = 0;
+	}
+
+	for (i=0; i<(int)UBOS_COUNT; i++) {
+		ubo[i] = 0;
 	}
 }
 
@@ -25,6 +30,8 @@ bool CRenderer::initGL()
 
 	glGenVertexArrays(1, &vaoEmpty);
 	bool success = loadPrograms();
+
+	updateUBOs();
 	
 	CImage img;
 	img.makeChecker(TImageInfo(16,16,1));
@@ -44,6 +51,7 @@ void CRenderer::dropGL() noexcept
 	}
 	dummyImg.drop();
 	dropPrograms();
+	dropUBOs();
 }
 
 bool CRenderer::loadProgram(TRenderPrograms p)
@@ -90,6 +98,53 @@ void CRenderer::dropPrograms() noexcept
 		if (program[p]) {
 			glDeleteProgram(program[p]);
 			program[p] = 0;
+		}
+	}
+}
+
+const void* CRenderer::getUBOData(GLsizeiptr& size, TUniformBuffers u) const
+{
+	switch(u) {
+		case UBO_DISPLAY_STATE:
+			size = sizeof(TUBODisplayState);
+			return (const void*)&uboDisplayState;
+		default:
+			size = 0;
+			return NULL;
+	}
+}
+
+void CRenderer::updateUBO(TUniformBuffers u)
+{
+	const void *data;
+	GLsizeiptr size;
+
+	data = getUBOData(size, u);
+	if (data) {
+		if (!ubo[u]) {
+			glGenBuffers(1, &ubo[u]);
+			glBindBuffer(GL_UNIFORM_BUFFER, ubo[u]);
+			glBufferStorage(GL_UNIFORM_BUFFER, size, data, GL_DYNAMIC_STORAGE_BIT);
+		} else {
+			glBindBuffer(GL_UNIFORM_BUFFER, ubo[u]);
+			glBufferSubData(GL_UNIFORM_BUFFER, 0, size, data);
+		}
+	}
+}
+
+void CRenderer::updateUBOs() noexcept
+{
+	for (int u=0; u<(int)UBOS_COUNT; u++) {
+		updateUBO((TUniformBuffers)u);
+	}
+}
+
+void CRenderer::dropUBOs() noexcept
+{
+	for (int u=0; u<(int)UBOS_COUNT; u++) {
+		if (ubo[0]) {
+			glDeleteBuffers(1, &ubo[u]);
+			ubo[u] = 0;
 		}
 	}
 }
