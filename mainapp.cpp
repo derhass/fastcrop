@@ -1,6 +1,7 @@
 #include <glad/gl.h>
 #include <GLFW/glfw3.h>
 
+#include "controller.h"
 #include "render.h"
 #include "util.h"
 
@@ -77,9 +78,7 @@ typedef struct {
 	/* the window and related state */
 	GLFWwindow *win;
 	AppConfig* cfg;
-	int width, height;
 	int winWidth, winHeight;
-	bool resized;
 	double winToPixel[2];
 	unsigned int flags;
 
@@ -96,6 +95,7 @@ typedef struct {
 	int maxGlTextureSize;
 	int maxGlSize;
 
+	CController controller;
 	CRenderer renderer;
 } MainApp;
 
@@ -206,9 +206,13 @@ static void initGLState(MainApp* app, const AppConfig& cfg)
 	util::info("GL limits: tex size: %d, viewport: %dx%d, framebuffer: %dx%d, using limt: %d",
 			app->maxGlTextureSize, maxViewport[0], maxViewport[1], maxFB[0], maxFB[1], app->maxGlSize);
 
+	if (!app->controller.initGL()) {
+		util::warn("GL controller failed to initialize");
+	}
 	if (!app->renderer.initGL()) {
 		util::warn("GL renderer failed to initialize");
 	}
+	app->renderer.invalidateImageState();
 }
 
 /****************************************************************************
@@ -245,14 +249,14 @@ static void callback_Resize(GLFWwindow *win, int w, int h)
 	util::info("new framebuffer size: %dx%d pixels",w,h);
 
 	/* store curent size for later use in the main loop */
-	if (w != app->width || h != app->height) {
-		app->width = w;
-		app->height = h;
-		app->resized = true;
+	const TWindowState ws = app->controller.getWindowState();
+	if (w != ws.dims[0] || h != ws.dims[1]) {
+		app->controller.setWindowSize(w,h);
+		app->renderer.invalidateWindowState();
 	}
 
-	app->winToPixel[0] = (double)app->width  / (double)app->winWidth;
-	app->winToPixel[1] = (double)app->height / (double)app->winHeight;
+	app->winToPixel[0] = (double)ws.dims[0] / (double)app->winWidth;
+	app->winToPixel[1] = (double)ws.dims[1] / (double)app->winHeight;
 }
 
 /* This function is registered as the window size callback for GLFW,
@@ -266,8 +270,10 @@ static void callback_WinResize(GLFWwindow *win, int w, int h)
 	app->winWidth=w;
 	app->winHeight=h;
 
-	app->winToPixel[0] = (double)app->width  / (double)app->winWidth;
-	app->winToPixel[1] = (double)app->height / (double)app->winHeight;
+	const TWindowState ws = app->controller.getWindowState();
+
+	app->winToPixel[0] = (double)ws.dims[0] / (double)app->winWidth;
+	app->winToPixel[1] = (double)ws.dims[1] / (double)app->winHeight;
 }
 
 /* This function is registered as the keyboard callback for GLFW, so GLFW
@@ -338,7 +344,6 @@ bool initMainApp(MainApp *app, AppConfig& cfg)
 	app->avg_frametime=-1.0;
 	app->avg_fps=-1.0;
 	app->frame = 0;
-	app->resized = false;
 
 	/* initialize GLFW library */
 	util::info("initializing GLFW");
@@ -391,8 +396,7 @@ bool initMainApp(MainApp *app, AppConfig& cfg)
 		return false;
 	}
 
-	app->width = w;
-	app->height = h;
+	app->controller.setWindowSize(w,h);
 	app->winWidth = w;
 	app->winHeight = h;
 	app->winToPixel[0] = 1.0f;
@@ -472,6 +476,7 @@ static void destroyMainApp(MainApp *app)
 		if (app->win) {
 			if (app->flags & APP_HAVE_GL) {
 				app->renderer.dropGL();
+				app->controller.dropGL();
 				/* shut down imgui */
 #ifdef WITH_IMGUI
 				if (app->flags & APP_HAVE_IMGUI) {
@@ -497,12 +502,14 @@ drawScene(MainApp *app, AppConfig& cfg)
 {
 	/* set the viewport (might have changed since last iteration) */
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-	glViewport(0, 0, app->width, app->height);
+	const TWindowState& ws = app->controller.getWindowState();
+	glViewport(0, 0, ws.dims[0], ws.dims[1]);
 
 	glClearColor(cfg.colorBackground[0], cfg.colorBackground[1], cfg.colorBackground[2], cfg.colorBackground[3]);
 	glClear(GL_COLOR_BUFFER_BIT); /* clear the buffers */
 
-	app->renderer.render();
+	const CImageEntity& cur = app->controller.getCurrent();
+	app->renderer.render(cur, app->controller);
 
 
 #ifdef WITH_IMGUI
@@ -586,7 +593,6 @@ static void mainLoop(MainApp *app, AppConfig& cfg)
 		if (!displayFunc(app, cfg)) {
 			break;
 		}
-		app->resized = false;
 		app->frame++;
 		frame++;
 		if (cfg.frameCount && app->frame >= cfg.frameCount) {

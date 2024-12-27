@@ -2,16 +2,30 @@
 #define FASTCROP_RENDER_H
 
 #include <glad/gl.h>
-#include "glimage.h"
-
 #include <stdint.h>
 
-struct TUBODisplayState {
+class CImageEntity; // forward controller.h
+class CController; // forward controller.h
+
+struct TUBOWindowState {
 	uint32_t dims[2];
+
+	TUBOWindowState() noexcept
+	{
+		reset();
+	}
+
+	void reset() noexcept
+	{
+		dims[0] = 1920;
+		dims[1] = 1080;
+	}
+};
+
+struct TUBODisplayState {
+	uint32_t imgDims[2];
 	float scale[2];
 	float offset[2];
-	uint32_t cropPos[2];
-	uint32_t cropSize[2];
 
 	TUBODisplayState() noexcept
 	{
@@ -20,12 +34,26 @@ struct TUBODisplayState {
 
 	void reset() noexcept
 	{
-		dims[0] = 1;
-		dims[1] = 1;
+		imgDims[0] = 1;
+		imgDims[1] = 1;
 		scale[0] = 1.0f;
 		scale[1] = 1.0f;
 		offset[0] = 0.0f;
 		offset[1] = 0.0f;
+	}
+};
+
+struct TUBOCropState {
+	uint32_t cropPos[2];
+	uint32_t cropSize[2];
+
+	TUBOCropState() noexcept
+	{
+		reset();
+	}
+
+	void reset() noexcept
+	{
 		cropPos[0] = 0;
 		cropPos[1] = 0;
 		cropSize[0] = 0;
@@ -41,17 +69,20 @@ class CRenderer {
 		};
 
 		enum TUniformBuffers {
-			UBO_DISPLAY_STATE = 0,
+			UBO_WINDOW_STATE = 0,
+			UBO_DISPLAY_STATE,
+			UBO_CROP_STATE,
 			UBOS_COUNT // end marker
 		};
 
-		CGLImage *img;
-		CGLImage dummyImg;
 		GLuint program[RENDER_PROGRAMS_COUNT];
 		GLuint ubo[UBOS_COUNT];
 		GLuint vaoEmpty;
 
+		TUBOWindowState uboWindowState;
 		TUBODisplayState uboDisplayState;
+		TUBOCropState uboCropState;
+		unsigned int ubosDirty;
 		
 		bool loadProgram(TRenderPrograms p);
 		bool loadPrograms();
@@ -74,7 +105,13 @@ class CRenderer {
 		bool initGL();
 		void dropGL() noexcept;
 
-		void render();
+		void prepareUBOs(const CImageEntity& e, const CController& ctrl);
+		void render(const CImageEntity& e, const CController& ctrl);
+
+		void invalidateWindowState() noexcept;
+		void invalidateDisplayState() noexcept;
+		void invalidateCropState() noexcept;
+		void invalidateImageState() noexcept;
 };
 
 #endif /* !FASTCROP_RENDER_H */
