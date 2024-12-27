@@ -8,6 +8,7 @@ class CImageEntity; // forward controller.h
 class CController; // forward controller.h
 
 struct TUBOWindowState {
+	float cropLineColor[4];
 	uint32_t dims[2];
 
 	TUBOWindowState() noexcept
@@ -17,13 +18,18 @@ struct TUBOWindowState {
 
 	void reset() noexcept
 	{
+		cropLineColor[0] = 1.0f;
+		cropLineColor[1] = 1.0f;
+		cropLineColor[2] = 1.0f;
+		cropLineColor[3] = 1.0f;
+
 		dims[0] = 1920;
 		dims[1] = 1080;
 	}
 };
 
 struct TUBODisplayState {
-	uint32_t imgDims[2];
+	int32_t imgDims[2];
 	float scale[2];
 	float offset[2];
 
@@ -44,8 +50,8 @@ struct TUBODisplayState {
 };
 
 struct TUBOCropState {
-	uint32_t cropPos[2];
-	uint32_t cropSize[2];
+	int32_t cropPos[2];
+	int32_t cropSize[2];
 
 	TUBOCropState() noexcept
 	{
@@ -65,6 +71,7 @@ class CRenderer {
 	private:
 		enum TRenderPrograms {
 			RENDER_PROGRAM_IMG = 0,
+			RENDER_PROGRAM_CROPLINE,
 			RENDER_PROGRAMS_COUNT // end marker
 		};
 

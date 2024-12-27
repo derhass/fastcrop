@@ -1,8 +1,16 @@
 #include "controller.h"
 
+#include "util.h"
+
+#include <ctgmath>
+
 CController::CController() :
 	currentEntity(0)
 {
+	// TODO: only for testing
+	currentCropSate.aspectRatio[1] = 16.0f;
+	currentCropSate.aspectRatio[0] = 9.0f;
+	currentCropSate.scale = 1.5f;
 }
 
 CController::~CController()
@@ -78,7 +86,7 @@ const TWindowState& CController::getWindowState() const noexcept
 	return windowState;
 }
 
-const CImageEntity& CController::getCurrent()
+CImageEntity& CController::getCurrentInternal()
 {
 	CImageEntity *e = NULL;
 	if (currentEntity < entities.size()) {
@@ -87,8 +95,77 @@ const CImageEntity& CController::getCurrent()
 	if (!e) {
 		e = &dummy;
 	}
-
-	prepareImageEntity(*e);
 	return *e;
 }
 
+const CImageEntity& CController::getCurrent()
+{
+	CImageEntity& e = getCurrentInternal();
+	prepareImageEntity(e);
+	return e;
+}
+
+const TDisplayState& CController::getDisplayState(const CImageEntity& e) const
+{
+	return e.display;
+}
+
+const TCropState& CController::getCropState(const CImageEntity& e, bool& croppingEnabled) const
+{
+	if (e.flags & FLAG_ENTITY_CROPPED) {
+		croppingEnabled = true;
+		return e.crop;
+	}
+	croppingEnabled = true; // TODO: switchable mode
+	return currentCropSate;
+}
+
+void CController::applyCropping(const TImageInfo& info, const TCropState& cs, int32_t pos[2], int32_t size[2]) const
+{
+	float is[2];
+	is[0] = (float)info.width;
+	is[1] = (float)info.height;
+	float imgAspect = is[0]/is[1];
+	float cropAspect = cs.aspectRatio[0] / cs.aspectRatio[1];
+	float s[2],sp[2];
+
+	if (cropAspect > imgAspect) {
+		s[0] = 1.0f;
+		s[1] = imgAspect / cropAspect;
+	} else {
+		s[0] = cropAspect /imgAspect;
+		s[1] = 1.0f;
+	}
+
+	for (int i=0; i<2; i++) {
+		s[i] *= cs.scale;
+		sp[i] = s[i] * is[i];
+		size[i] = (int32_t)std::roundf(sp[i]);
+		pos[i] = (int32_t)std::roundf((cs.posCenter[i] - 0.5f * s[i]) * is[i]);
+		//util::info("XXX %d %d %d",i,size[i],pos[i]);
+	}
+}
+
+void CController::adjustZoom(float factor)
+{
+	CImageEntity& e = getCurrentInternal();
+	e.display.zoom *= factor;
+	if (e.display.zoom < 1.0e-6f) {
+		e.display.zoom = 1.0e-6f;
+	}
+	float delta = 1.0f - e.display.zoom;
+	if (delta > 1.0e-3f &&  delta < 1.0e-3f) {
+		e.display.zoom = 1.0f;
+	}
+	// TODO: snap in to pixel scales???
+}
+
+void CController::setZoom(float factor, bool relativeToPixels)
+{
+	float baseFactor = 1.0f;
+	if (relativeToPixels) {
+		// TODO
+	}
+	CImageEntity& e = getCurrentInternal();
+	e.display.zoom = baseFactor * factor;
+}

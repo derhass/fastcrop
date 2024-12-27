@@ -1,10 +1,10 @@
-#version 450
+#version 450 core
 
 out vec2 texCoord;
 
 layout(std140, binding=1) uniform displayStateUBO
 {
-	uvec2 imgDims;
+	ivec2 imgDims;
 	vec2 scale;
 	vec2 offset;
 } displayState;

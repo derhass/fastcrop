@@ -299,13 +299,13 @@ static void callback_scroll(GLFWwindow *win, double x, double y)
 {
 	MainApp *app=(MainApp*)glfwGetWindowUserPointer(win);
 	if (isOurInput(app, true)) {
-		/*
 		if (y > 0.1) {
-			doZoom(app, (float)(y * sqrt(2.0)), 0.0f);
+			app->controller.adjustZoom((float)(y * sqrt(2.0)));
+			app->renderer.invalidateDisplayState();
 		} else if ( y < -0.1) {
-			doZoom(app, (float)(-1.0 / (sqrt(2.0) * y)), 0.0f);
+			app->controller.adjustZoom((float)(-1.0 / (sqrt(2.0) * y)));
+			app->renderer.invalidateDisplayState();
 		}
-		*/
 	}
 }
 

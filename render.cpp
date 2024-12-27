@@ -56,17 +56,22 @@ bool CRenderer::loadProgram(TRenderPrograms p)
 		program[p] = 0;
 	}
 	std::string base = "shaders/";
+	std::string selected;
 	std::string vs;
 	std::string fs;
 	switch(p) {
 		case RENDER_PROGRAM_IMG:
-			vs = base + "img.vert.glsl";
-			fs = base + "img.frag.glsl";
+			selected = "img";
+			break;
+		case RENDER_PROGRAM_CROPLINE:
+			selected = "cropline";
 			break;
 		default:
 			return false;
 	}
 
+	vs = base + selected + ".vert.glsl";
+	fs = base + selected + ".frag.glsl";
 	program[p]=util::programCreateFromFiles(vs.c_str(), fs.c_str());
 	if (!program[p]) {
 		util::warn("failed to load shader %d: %s %s",(int)p,vs.c_str(),fs.c_str());
@@ -170,12 +175,12 @@ void CRenderer::prepareUBOs(const CImageEntity& e, const CController& ctrl)
 		if (e.flags & FLAG_ENTITY_IMAGE) {
 			const TImageInfo& info = e.image.getInfo();
 			imgAspect = ((float)info.width / (float)info.height) * e.display.aspectCorrection;
-			uboDisplayState.imgDims[0] = (uint32_t)info.width;
-			uboDisplayState.imgDims[1] = (uint32_t)info.height;
+			uboDisplayState.imgDims[0] = (int32_t)info.width;
+			uboDisplayState.imgDims[1] = (int32_t)info.height;
 		} else {
 			imgAspect = e.display.aspectCorrection;
-			uboDisplayState.imgDims[0] = (uint32_t)1024;
-			uboDisplayState.imgDims[1] = (uint32_t)1024;
+			uboDisplayState.imgDims[0] = (int32_t)1024;
+			uboDisplayState.imgDims[1] = (int32_t)1024;
 		}
 		float s = 2.0f * e.display.zoom;
 		if (imgAspect >= winAspect) {
@@ -192,20 +197,15 @@ void CRenderer::prepareUBOs(const CImageEntity& e, const CController& ctrl)
 	}
 
 	if (ubosDirty & (1U<<(unsigned)UBO_CROP_STATE)) {
-		if ( (e.flags & (FLAG_ENTITY_CROPPED | FLAG_ENTITY_IMAGE)) == (FLAG_ENTITY_CROPPED | FLAG_ENTITY_IMAGE) ) {
-			uboCropState.cropPos[0] = 5;
-			uboCropState.cropPos[1] = 5;
-			uboCropState.cropSize[0] = 3;
-			uboCropState.cropSize[1] = 2;
+		bool croppingEnabled;
+		const TCropState& cs = ctrl.getCropState(e, croppingEnabled);
+		if (croppingEnabled) {
+			ctrl.applyCropping(e.image.getInfo(), cs, uboCropState.cropPos, uboCropState.cropSize);
 		} else {
 			uboCropState.cropPos[0] = 0;
 			uboCropState.cropPos[1] = 0;
 			uboCropState.cropSize[0] = 0;
 			uboCropState.cropSize[1] = 0;
-			uboCropState.cropPos[0] = 5;
-			uboCropState.cropPos[1] = 5;
-			uboCropState.cropSize[0] = 3;
-			uboCropState.cropSize[1] = 2;
 		}
 		updateUBO(UBO_CROP_STATE);
 		ubosDirty &= ~(1U<<(unsigned)UBO_CROP_STATE);
@@ -221,6 +221,11 @@ void CRenderer::render(const CImageEntity& e, const CController& ctrl)
 	prepareUBOs(e, ctrl);
 	glBindTextureUnit(0, e.glImage.getTex());
 	glDrawArrays(GL_TRIANGLES, 0, 6);
+
+	if (uboCropState.cropSize[0] > 0) {
+		glUseProgram(program[RENDER_PROGRAM_CROPLINE]);
+		glDrawArrays(GL_LINE_LOOP, 0, 4);
+	}
 }
 
 void CRenderer::invalidateWindowState() noexcept

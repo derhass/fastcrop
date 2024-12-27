@@ -68,10 +68,13 @@ class CController {
 		CImageEntity dummy;
 
 		size_t currentEntity;
+		TCropState currentCropSate;
 	
 		bool uploadGLImage(CImageEntity& e);
 		void dropGLImage(CImageEntity& e);
 		bool prepareImageEntity(CImageEntity& e);
+
+		CImageEntity& getCurrentInternal();
 
 	public:
 		CController();
@@ -89,6 +92,12 @@ class CController {
 		const TWindowState& getWindowState() const noexcept;
 
 		const CImageEntity& getCurrent();
+		const TDisplayState& getDisplayState(const CImageEntity& e) const;
+		const TCropState& getCropState(const CImageEntity& e, bool& croppingEnabled) const;
+		void applyCropping(const TImageInfo& img, const TCropState& cs, int32_t pos[2], int32_t size[2]) const;
+
+		void adjustZoom(float factor);
+		void setZoom(float factor, bool relativeToPixels = false);
 };
 
 #endif /* !FASTCROP_CONTROLLER_H*/
