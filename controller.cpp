@@ -146,6 +146,46 @@ void CController::applyCropping(const TImageInfo& info, const TCropState& cs, in
 	}
 }
 
+/*
+void CController::reconstructCropping(const TImageInfo& info, TCropState& cs, const int32_t pos[2], const int32_t size[2], bool mayAdjustSize) const
+{
+	float is[2];
+	is[0] = (float)info.width;
+	is[1] = (float)info.height;
+	for (int i=0; i<2; i++) {
+		float cp = (float)pos[i] + 0.5f * (float)size[i];
+		cs.posCenter[i] = cp / is[i];
+	}
+
+	if (mayAdjustSize) {
+		int32_t np[2];
+		int32_t ns[2];
+		applyCropping(info, cs, np, sd);
+		if (ns[0] != size[0] || ns[1] != size[1]) {
+			float f[2];
+			f[0] = (float)ns[0] / (float)ns[1
+
+		}
+	}
+
+	if (withSize) {
+		float cropAspect = (float)size[0] / (float)size[1];
+		
+	}
+	float imgAspect = is[0]/is[1];
+	float cropAspect = cs.aspectRatio[0] / cs.aspectRatio[1];
+	float s[2],sp[2];
+
+	if (cropAspect > imgAspect) {
+		s[0] = 1.0f;
+		s[1] = imgAspect / cropAspect;
+	} else {
+		s[0] = cropAspect /imgAspect;
+		s[1] = 1.0f;
+	}
+}
+*/
+
 void CController::adjustZoom(float factor)
 {
 	CImageEntity& e = getCurrentInternal();
