@@ -163,6 +163,9 @@ class CInternalIDGenerator {
 /* round GLsizei to next multiple of base */
 extern GLsizei roundNextMultiple(GLsizei value, GLsizei base);
 
+/* get file extension, points into filename */
+extern const char *getExt(const char *filename);
+
 /****************************************************************************
  * WINDOWS WIDE STRING <-> UTF8                                             *
  ****************************************************************************/

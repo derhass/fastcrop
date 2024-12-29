@@ -81,9 +81,11 @@ class CImage {
 		void reset() noexcept;
 		bool isValidDims() const noexcept;
 		const void* getData() const noexcept; // NULL if invalid 
+		void* getData() noexcept; // NULL if invalid
 		bool hasData() const noexcept;
 		const TImageInfo& getInfo() const noexcept {return info;}
 
+		bool create(const TImageInfo& newInfo) noexcept;
 		bool makeChecker(const TImageInfo& newInfo) noexcept;
 };
 

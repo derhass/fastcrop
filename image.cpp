@@ -96,9 +96,23 @@ const void* CImage::getData() const noexcept
 	return data;
 }
 
+void* CImage::getData() noexcept
+{
+	if (!hasData()) {
+		return NULL;
+	}
+
+	return data;
+}
+
 bool CImage::hasData() const noexcept
 {
 	return (data && info.isValid());
+}
+
+bool CImage::create(const TImageInfo& newInfo) noexcept
+{
+	return allocate(newInfo);
 }
 
 bool CImage::makeChecker(const TImageInfo& newInfo) noexcept

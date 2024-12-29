@@ -4,6 +4,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #ifdef WIN32
 #include <Windows.h>
@@ -460,6 +461,28 @@ GLsizei roundNextMultiple(GLsizei value, GLsizei base)
 		value += base - rem;
 	}
 	return value;
+}
+
+/* get file extension, points into filename */
+extern const char *getExt(const char *filename)
+{
+	if (!filename) {
+		return NULL;
+	}
+	const char *dot = strrchr(filename, '.');
+	if (dot) {
+		return dot+1;
+	}
+	const char *delim = strrchr(filename, '/');
+#ifdef WIN32
+	if (!delim) {
+		delim = strrchr(filename, '\\');
+	}
+#endif
+	if (delim) {
+		return delim+1;
+	}
+	return filename;
 }
 
 #ifdef WIN32
