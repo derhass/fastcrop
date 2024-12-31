@@ -86,6 +86,7 @@ class CImage {
 		const TImageInfo& getInfo() const noexcept {return info;}
 
 		bool create(const TImageInfo& newInfo) noexcept;
+		bool adopt(const TImageInfo& newInfo, void *dataPtr) noexcept;
 		bool makeChecker(const TImageInfo& newInfo) noexcept;
 };
 

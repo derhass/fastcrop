@@ -1,6 +1,7 @@
 #include <glad/gl.h>
 #include <GLFW/glfw3.h>
 
+#include "codec.h"
 #include "controller.h"
 #include "render.h"
 #include "util.h"
@@ -10,6 +11,11 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 #include "imgui_stdlib.h"
+#endif
+
+#include "codec_stb_image.h"
+#ifdef WITH_LIBJPEG
+#include "codec_libjpeg.h"
 #endif
 
 #include <math.h>
@@ -74,7 +80,7 @@ struct AppConfig {
  * this as the user-defined pointer for GLFW windows. That way, we have access
  * to this data structure without ever using global variables.
  */
-typedef struct {
+typedef struct TMainApp {
 	/* the window and related state */
 	GLFWwindow *win;
 	AppConfig* cfg;
@@ -95,8 +101,14 @@ typedef struct {
 	int maxGlTextureSize;
 	int maxGlSize;
 
+	CCodecs     codecs;
+	CCodecSettings codecSettings;
 	CController controller;
 	CRenderer renderer;
+
+	TMainApp() :
+		controller(codecs, codecSettings, codecSettings)
+	{}
 } MainApp;
 
 /* flags */
@@ -671,7 +683,15 @@ int REALMAIN (int argc, char **argv)
 	*/
 #endif
 
+#ifdef WITH_LIBJPEG
+	app.codecs.registerCodec(codecLibjpeg);
+#endif
+	app.codecs.registerCodec(codecSTBImageLoad);
+
 	parseCommandlineArgs(cfg, app, argc, argv);
+
+	/// TODO XXX XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXx
+	app.controller.addFile("test.jpg");
 
 	if (initMainApp(&app, cfg)) {
 #ifdef WITH_IMGUI

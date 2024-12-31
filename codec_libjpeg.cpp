@@ -4,10 +4,16 @@
 
 #include <string.h>
 
-static bool supportsName(const char *filename, const CCodecSettings& cfg)
+static bool supportsName(const char *filename, const char *ext, const CCodecSettings& cfg)
 {
 	(void)cfg;
-	const char *ext = util::getExt(filename);
+	if (!ext) {
+		ext = filename;
+		if (!ext) {
+			return false;
+		}
+	}
+	
 	if (!strcasecmp(ext,"jpg") || !strcasecmp(ext,"jpeg")) {
 		return true;
 	}
@@ -25,5 +31,5 @@ static bool supportsFormat(const void *header, size_t size, const CCodecSettings
 	return false;
 }
 
-CCodecDesc codecLibjpeg(supportsName,supportsFormat,NULL,NULL);
+CCodecDesc codecLibjpeg("libjpeg", supportsName,supportsFormat,NULL,NULL);
 

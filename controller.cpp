@@ -1,10 +1,14 @@
 #include "controller.h"
 
+#include "codec.h"
 #include "util.h"
 
 #include <ctgmath>
 
-CController::CController() :
+CController::CController(CCodecs& c, const CCodecSettings& ds, const CCodecSettings& es) :
+	codecs(c),
+	decodeSettings(ds),
+	encodeSettings(es),
 	currentEntity(0)
 {
 	// TODO: only for testing
@@ -43,7 +47,9 @@ void CController::dropGLImage(CImageEntity& e)
 bool CController::prepareImageEntity(CImageEntity& e)
 {
 	if (!(e.flags & FLAG_ENTITY_IMAGE)) {
-		// TODO: load image
+		if (codecs.decode(e.filename.c_str(), e.image, decodeSettings)) {
+			e.flags |= FLAG_ENTITY_IMAGE;
+		}
 	}
 	return uploadGLImage(e);
 }
@@ -208,4 +214,11 @@ void CController::setZoom(float factor, bool relativeToPixels)
 	}
 	CImageEntity& e = getCurrentInternal();
 	e.display.zoom = baseFactor * factor;
+}
+
+void CController::addFile(const char *name)
+{
+	CImageEntity *e = new CImageEntity();
+	e->filename = std::string(name);
+	entities.push_back(e);
 }

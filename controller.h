@@ -7,6 +7,9 @@
 #include <string>
 #include <vector>
 
+class CCodecs; // forward codec.h
+class CCodecSettings; // forward codec.h
+
 struct TWindowState {
 	int dims[2];
 
@@ -62,6 +65,9 @@ struct CImageEntity {
 
 class CController {
 	private:
+		CCodecs& codecs;
+		const CCodecSettings& decodeSettings;
+		const CCodecSettings& encodeSettings;
 		TWindowState windowState;
 
 		std::vector<CImageEntity*> entities;
@@ -77,7 +83,7 @@ class CController {
 		CImageEntity& getCurrentInternal();
 
 	public:
-		CController();
+		CController(CCodecs& c, const CCodecSettings& ds, const CCodecSettings& es);
 		~CController();
 
 		CController(const CController& other) = delete;
@@ -98,6 +104,8 @@ class CController {
 
 		void adjustZoom(float factor);
 		void setZoom(float factor, bool relativeToPixels = false);
+
+		void addFile(const char *name);
 };
 
 #endif /* !FASTCROP_CONTROLLER_H*/

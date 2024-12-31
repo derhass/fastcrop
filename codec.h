@@ -16,18 +16,20 @@ struct CCodecSettings {
 	{}
 };
 
-typedef bool (*TPtrSupportsName)(const char *filename, const CCodecSettings& cfg);
+typedef bool (*TPtrSupportsName)(const char *filename, const char *ext, const CCodecSettings& cfg);
 typedef bool (*TPtrSupportsFormat)(const void *header, size_t size, const CCodecSettings& cfg);
 typedef bool (*TPtrDecode)(const char *filename, CImage& img, const CCodecSettings& cfg);
 typedef bool (*TPtrEncode)(const char *filename, const CImage& img, const CCodecSettings& cfg);
 
 struct CCodecDesc {
+	const char *name;
 	TPtrSupportsName supportsName;
 	TPtrSupportsFormat supportsFormat;
 	TPtrDecode decode;
 	TPtrEncode encode;
 
-	CCodecDesc(TPtrSupportsName n, TPtrSupportsFormat f, TPtrDecode d, TPtrEncode e) :
+	CCodecDesc(const char *na, TPtrSupportsName n, TPtrSupportsFormat f, TPtrDecode d, TPtrEncode e) :
+		name(na),
 		supportsName(n),
 		supportsFormat(f),
 		decode(d),
@@ -42,9 +44,7 @@ class CCodecs {
 	
 	public:
 		void registerCodec(const CCodecDesc& desc);
-		CCodecDesc* findCodecByName(const char *filename, const CCodecSettings& cfg);
-		CCodecDesc* findCodecByData(const char *filename, const CCodecSettings& cfg);
-		CCodecDesc* findCodec(const char *filename, const CCodecSettings& cfg);
+
 		bool decode(const char *filename, CImage& img, const CCodecSettings& cfg);
 		bool encode(const char *filename, const CImage& img, const CCodecSettings& cfg);
 };

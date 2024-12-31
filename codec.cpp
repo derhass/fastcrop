@@ -8,79 +8,95 @@ void CCodecs::registerCodec(const CCodecDesc& desc)
 	codecs.push_back(desc);
 }
 
-CCodecDesc* CCodecs::findCodecByName(const char *filename, const CCodecSettings& cfg)
+bool CCodecs::decode(const char *filename, CImage& img, const CCodecSettings& cfg)
 {
-	CCodecDesc *found = NULL;
-	for (size_t i=0; i<codecs.size() && !found; i++) {
-		try {
-			CCodecDesc& desc = codecs[i];
-			if (desc.supportsName) {
-				if (desc.supportsName(filename, cfg)) {
-					found = &desc;
-				}
-			}
-		} catch(...) {}
+	void *buf = NULL;
+	size_t size = 0;
+	bool success = false;
+	bool bufAllocTried = false;
+	const char *ext = NULL;
+
+	if (!filename || !filename[0]) {
+		return false;
 	}
 
-	return found;
-}
-
-CCodecDesc* CCodecs::findCodecByData(const char *filename, const CCodecSettings& cfg)
-{
-	CCodecDesc *found = NULL;
-	if (cfg.scanHeaderSize > 0) {
-		void *buf = malloc(cfg.scanHeaderSize);
-		if (buf) {
-			FILE *f = util::fopen_wrapper(filename, "rb");
-			if (f) {
-				size_t got = fread(buf, 1, cfg.scanHeaderSize, f);
-				fclose(f);
-
-				if (got > 0) {
-					
-					for (size_t i=0; i<codecs.size() && !found; i++) {
-						try {
-							CCodecDesc& desc = codecs[i];
-							if (desc.supportsFormat) {
-								if (desc.supportsFormat(buf, got, cfg)) {
-									found = &desc;
-								}
-							}
-						} catch(...) {}
+	for (size_t i=0; i<codecs.size() && !success; i++) {
+		bool tryThis = false;
+		CCodecDesc& c = codecs[i];
+		if (c.supportsFormat) {
+			if (cfg.scanHeaderSize > 0 && !bufAllocTried) {
+				bufAllocTried = true;
+				buf = malloc(cfg.scanHeaderSize);
+				if (buf) {
+					FILE *f = util::fopen_wrapper(filename, "rb");
+					if (f) {
+						size = fread(buf, 1, cfg.scanHeaderSize, f);
+						fclose(f);
 					}
 				}
 			}
-			free(buf);
+			if (bufAllocTried && buf && size > 0) {
+				try {
+					if (c.supportsFormat(buf, size, cfg)) {
+						tryThis = true;
+					}
+				} catch(...) {}
+			}
+		}
+	        if (!tryThis && c.supportsName) {
+			if (!ext) {
+				ext = util::getExt(filename);
+			}
+			try {
+				if (c.supportsName(filename, ext, cfg)) {
+					tryThis = true;
+				}
+			} catch(...) {}
+		}
+		if (c.decode && tryThis) {
+			try {
+				success = c.decode(filename, img, cfg);
+			} catch(...) {
+				success = false;
+			}
 		}
 	}
 
-	return found;
-}
-
-CCodecDesc* CCodecs::findCodec(const char *filename, const CCodecSettings& cfg)
-{
-	CCodecDesc *found = findCodecByData(filename, cfg);
-	if (!found) {
-		found = findCodecByName(filename, cfg);
+	if (buf) {
+		free(buf);
 	}
-	return found;
-}
 
-bool CCodecs::decode(const char *filename, CImage& img, const CCodecSettings& cfg)
-{
-	CCodecDesc *c = findCodec(filename, cfg);
-	if (c && c->decode) {
-		return c->decode(filename, img, cfg);
-	}
-	return false;
+	return success;
 }
 
 bool CCodecs::encode(const char *filename, const CImage& img, const CCodecSettings& cfg)
 {
-	CCodecDesc *c = findCodecByName(filename, cfg);
-	if (c && c->encode) {
-		return c->encode(filename, img, cfg);
+	if (!filename || !filename[0]) {
+		return false;
 	}
-	return false;
+
+	bool success = false;
+	const char *ext = util::getExt(filename);
+
+	for (size_t i=0; i<codecs.size() && !success; i++) {
+		bool tryThis = false;
+		CCodecDesc& c = codecs[i];
+	        if (c.supportsName) {
+			try {
+				if (c.supportsName(filename, ext, cfg)) {
+					tryThis = true;
+				}
+			} catch(...) {}
+		}
+		if (c.encode && tryThis) {
+			try {
+				success = c.encode(filename, img, cfg);
+			} catch(...) {
+				success = false;
+			}
+		}
+	}
+
+	return success;
 }
 

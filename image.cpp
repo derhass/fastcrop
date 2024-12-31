@@ -115,6 +115,22 @@ bool CImage::create(const TImageInfo& newInfo) noexcept
 	return allocate(newInfo);
 }
 
+bool CImage::adopt(const TImageInfo& newInfo, void *dataPtr) noexcept
+{
+	setFormat(newInfo);
+
+	if (!dataPtr) {
+		return false;
+	}
+
+	if (info.getDataSize() < 1) {
+		return false;
+	}
+
+	data = dataPtr;
+	return true;
+}
+
 bool CImage::makeChecker(const TImageInfo& newInfo) noexcept
 {
 	if (allocate(newInfo)) {
