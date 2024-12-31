@@ -192,6 +192,7 @@ static void initGLState(MainApp* app, const AppConfig& cfg)
 	glDepthFunc(GL_LESS);
 	glClearDepth(1.0f);
 	glPixelStorei(GL_PACK_ALIGNMENT, 1);
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
 	app->maxGlTextureSize = 4096;
 	GLint maxViewport[2] = { 4096, 4096};

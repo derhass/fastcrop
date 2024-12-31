@@ -67,7 +67,7 @@ class CImage {
 
 		void dropData() noexcept;
 		void setFormat(const TImageInfo& newInfo) noexcept;
-		bool allocate(const TImageInfo& newInfo) noexcept;
+		bool allocate(const TImageInfo& newInfo, bool clear=false) noexcept;
 
 	public:
 		CImage() noexcept;
@@ -88,6 +88,8 @@ class CImage {
 		bool create(const TImageInfo& newInfo) noexcept;
 		bool adopt(const TImageInfo& newInfo, void *dataPtr) noexcept;
 		bool makeChecker(const TImageInfo& newInfo) noexcept;
+
+		bool resizeTo(CImage& dst, size_t w, size_t h) noexcept;
 };
 
 #endif /* !FASTCROP_IMAGE_H */

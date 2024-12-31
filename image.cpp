@@ -6,6 +6,9 @@
 
 #include <utility>
 
+#define STB_IMAGE_RESIZE_IMPLEMENTATION
+#include "stb/stb_image_resize2.h"
+
 CImage::CImage() noexcept :
 	data(NULL)
 {
@@ -70,12 +73,16 @@ void CImage::setFormat(const TImageInfo& newInfo) noexcept
 	info = newInfo;
 }
 
-bool CImage::allocate(const TImageInfo& newInfo) noexcept
+bool CImage::allocate(const TImageInfo& newInfo, bool clear) noexcept
 {
 	setFormat(newInfo);
 	size_t s = info.getDataSize();
 	if (s > 0) {
-		data = calloc(s, 1);
+		if (clear) {
+			data = calloc(s, 1);
+		} else {
+			data = malloc(s);
+		}
 	}
 	return (data != NULL);
 }
@@ -146,4 +153,39 @@ bool CImage::makeChecker(const TImageInfo& newInfo) noexcept
 		return true;
 	}
 	return false;
+}
+
+bool CImage::resizeTo(CImage& dst, size_t w, size_t h) noexcept
+{
+	if (!hasData()) {
+		return false;
+	}
+	if (info.bytesPerChannel != 1) {
+		return false;
+	}
+
+	stbir_pixel_layout l;
+	switch(info.channels) {
+		case 1:
+			l=STBIR_1CHANNEL;
+			break;
+		case 2:
+			l=STBIR_2CHANNEL;
+			break;
+		case 3:
+			l=STBIR_RGB;
+			break;
+		case 4:
+			l=STBIR_RGBA;
+			break;
+		default:
+			return false;
+	}
+	if (!dst.allocate(TImageInfo(w,h,info.channels,info.bytesPerChannel))) {
+		return false;
+	}
+
+	stbir_resize_uint8_srgb((const unsigned char*)data, (int)info.width, (int)info.height, 0,
+				(unsigned char*)dst.data, (int)dst.info.width, (int)dst.info.height, 0, l);
+	return true;
 }
