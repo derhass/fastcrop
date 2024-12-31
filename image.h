@@ -89,10 +89,10 @@ class CImage {
 		bool adopt(const TImageInfo& newInfo, void *dataPtr) noexcept;
 		bool makeChecker(const TImageInfo& newInfo) noexcept;
 
-		bool resizeTo(CImage& dst, size_t w, size_t h) noexcept;
+		bool resizeTo(CImage& dst, size_t w, size_t h) const noexcept;
 		bool resize(size_t w, size_t h) noexcept;
 
-		bool transposeTo(CImage& dst, bool flip) noexcept;
+		bool transposeTo(CImage& dst, bool flip) const noexcept;
 		bool transpose(bool flip) noexcept;
 };
 

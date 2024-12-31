@@ -157,7 +157,7 @@ bool CImage::makeChecker(const TImageInfo& newInfo) noexcept
 	return false;
 }
 
-bool CImage::resizeTo(CImage& dst, size_t w, size_t h) noexcept
+bool CImage::resizeTo(CImage& dst, size_t w, size_t h) const noexcept
 {
 	if (!hasData()) {
 		return false;
@@ -202,7 +202,7 @@ bool CImage::resize(size_t w, size_t h) noexcept
 	return false;
 }
 
-bool CImage::transposeTo(CImage& dst, bool flip) noexcept
+bool CImage::transposeTo(CImage& dst, bool flip) const noexcept
 {
 	if (!hasData()) {
 		return false;
@@ -243,4 +243,3 @@ bool CImage::transpose(bool flip) noexcept
 	}
 	return false;
 }
-
