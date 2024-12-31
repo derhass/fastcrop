@@ -9,6 +9,10 @@
 #define STB_IMAGE_RESIZE_IMPLEMENTATION
 #include "stb/stb_image_resize2.h"
 
+#define GET_PIXEL_OFFSET(i,x,y,c) (((y*i.width + x) * i.channels + c) * i.bytesPerChannel)
+#define GET_PIXEL(i,d,x,y,c) (((unsigned char*)d) + GET_PIXEL_OFFSET(i,x,y,c))
+#define GET_PIXELC(i,d,x,y,c) (((const unsigned char*)d) + GET_PIXEL_OFFSET(i,x,y,c))
+
 CImage::CImage() noexcept :
 	data(NULL)
 {
@@ -46,11 +50,9 @@ CImage& CImage::operator=(CImage&& other) noexcept
 		return *this;
 	}
 
-	allocate(other.info);
-	if (data && other.data) {
-		data = other.data;
-		other.data = NULL;
-	}
+	setFormat(other.info);
+	data = other.data;
+	other.data = NULL;
 	return *this;
 }
 
@@ -189,3 +191,56 @@ bool CImage::resizeTo(CImage& dst, size_t w, size_t h) noexcept
 				(unsigned char*)dst.data, (int)dst.info.width, (int)dst.info.height, 0, l);
 	return true;
 }
+
+bool CImage::resize(size_t w, size_t h) noexcept
+{
+	CImage dst;
+	if (resizeTo(dst, w, h)) {
+		*this = std::move(dst);
+		return true;
+	}
+	return false;
+}
+
+bool CImage::transposeTo(CImage& dst, bool flip) noexcept
+{
+	if (!hasData()) {
+		return false;
+	}
+	if (!dst.allocate(TImageInfo(info.height, info.width, info.channels, info.bytesPerChannel))) {
+		return false;
+	}
+	size_t x,y,i;
+	size_t ps = info.channels * info.bytesPerChannel;
+	ssize_t ls = info.width * ps;
+	size_t ss = 0;
+	size_t dls = dst.info.width * ps;
+	if (flip) {
+		ss = info.height - 1;
+		ls = -ls;
+	}
+	const unsigned char *s;
+	unsigned char *d= GET_PIXEL(dst.info, dst.data, 0, 0, 0);
+	for (y=0; y<dst.info.height; y++) {
+       		s = GET_PIXELC(info,data,y,ss,0);
+		for (x=0; x<dst.info.width; x++) {
+			for (i=0; i<ps; i++) {
+				d[x*ps+i] = s[i];
+			}
+			s += ls;
+		}
+		d += dls;
+	}
+	return true;
+}
+
+bool CImage::transpose(bool flip) noexcept
+{
+	CImage dst;
+	if (transposeTo(dst, flip)) {
+		*this = std::move(dst);
+		return true;
+	}
+	return false;
+}
+

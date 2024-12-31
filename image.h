@@ -90,6 +90,10 @@ class CImage {
 		bool makeChecker(const TImageInfo& newInfo) noexcept;
 
 		bool resizeTo(CImage& dst, size_t w, size_t h) noexcept;
+		bool resize(size_t w, size_t h) noexcept;
+
+		bool transposeTo(CImage& dst, bool flip) noexcept;
+		bool transpose(bool flip) noexcept;
 };
 
 #endif /* !FASTCROP_IMAGE_H */
