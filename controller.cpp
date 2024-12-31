@@ -12,9 +12,9 @@ CController::CController(CCodecs& c, const CCodecSettings& ds, const CCodecSetti
 	currentEntity(0)
 {
 	// TODO: only for testing
-	currentCropSate.aspectRatio[1] = 16.0f;
-	currentCropSate.aspectRatio[0] = 9.0f;
-	currentCropSate.scale = 1.5f;
+	currentCropSate.aspectRatio[1] = 3.0f;
+	currentCropSate.aspectRatio[0] = 2.0f;
+	//currentCropSate.scale = 1.5f;
 }
 
 CController::~CController()
@@ -48,6 +48,8 @@ bool CController::prepareImageEntity(CImageEntity& e)
 {
 	if (!(e.flags & FLAG_ENTITY_IMAGE)) {
 		if (codecs.decode(e.filename.c_str(), e.image, decodeSettings)) {
+			e.image.transpose(true);
+			//e.image.resize(720,1280);
 			e.flags |= FLAG_ENTITY_IMAGE;
 		}
 	}
