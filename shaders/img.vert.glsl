@@ -16,6 +16,6 @@ void main()
 			vec2(0.0, 1.0), vec2(1.0, 0.0), vec2(1.0, 1.0));
 	vec2 pos = quad[gl_VertexID];
 
-	texCoord = pos;
+	texCoord = vec2(pos.x, 1.0 - pos.y);
 	gl_Position = vec4(displayState.scale * pos + displayState.offset, 0.0, 1.0);
 }
