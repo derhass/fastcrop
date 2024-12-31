@@ -5,7 +5,7 @@ APPNAME=fastcrop
 
 # Compiler flags
 # enable all warnings in general
-WARNFLAGS= -Wall -Wno-comment
+WARNFLAGS= -Wall -Wno-comment -Wno-unused-function
 
 SHAREDFLAGS = $(WARNFLAGS) -pthread
 
