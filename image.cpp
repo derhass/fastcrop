@@ -9,7 +9,7 @@
 #define STB_IMAGE_RESIZE_IMPLEMENTATION
 #include "stb/stb_image_resize2.h"
 
-#define GET_PIXEL_OFFSET(i,x,y,c) (((y*i.width + x) * i.channels + c) * i.bytesPerChannel)
+#define GET_PIXEL_OFFSET(i,x,y,c) ((((y)*i.width + (x)) * i.channels + (c)) * i.bytesPerChannel)
 #define GET_PIXEL(i,d,x,y,c) (((unsigned char*)d) + GET_PIXEL_OFFSET(i,x,y,c))
 #define GET_PIXELC(i,d,x,y,c) (((const unsigned char*)d) + GET_PIXEL_OFFSET(i,x,y,c))
 
@@ -242,4 +242,52 @@ bool CImage::transpose(bool flip) noexcept
 		return true;
 	}
 	return false;
+}
+
+bool CImage::flipH() noexcept
+{
+	if (!hasData()) {
+		return false;
+	}
+
+	size_t x,y,i;
+	size_t ps = info.channels * info.bytesPerChannel;
+	size_t a = info.width>>1U;
+	size_t b = info.width - 1;
+
+	for (y=0; y<info.height; y++) {
+		unsigned char *p = GET_PIXEL(info, data, 0, y, 0);
+		for (x=0; x<a; x++) {
+			for (i=0; i<ps; i++) {
+				unsigned char tmp = p[x*ps + i];
+				p[x*ps + i] = p[(b-x)*ps + i];
+				p[(b-x)*ps + i] = tmp;
+			}
+		}
+	}
+	return true;
+}
+
+bool CImage::flipV() noexcept
+{
+	if (!hasData()) {
+		return false;
+	}
+
+	size_t i,y;
+	size_t ps = info.channels * info.bytesPerChannel;
+	size_t a = info.height>>1U;
+	size_t b = info.height - 1;
+	size_t c = info.width * ps;
+
+	for (y=0; y<a; y++) {
+		unsigned char *p = GET_PIXEL(info, data, 0, y, 0);
+		unsigned char *q = GET_PIXEL(info, data, 0, b-y, 0);
+		for (i=0; i<c; i++) {
+			unsigned char tmp = p[i];
+			p[i] = q[i];
+			q[i] = tmp;
+		}
+	}
+	return true;
 }

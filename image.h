@@ -94,6 +94,9 @@ class CImage {
 
 		bool transposeTo(CImage& dst, bool flip) const noexcept;
 		bool transpose(bool flip) noexcept;
+
+		bool flipH() noexcept;
+		bool flipV() noexcept;
 };
 
 #endif /* !FASTCROP_IMAGE_H */
