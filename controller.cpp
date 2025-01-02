@@ -49,7 +49,13 @@ bool CController::prepareImageEntity(CImageEntity& e)
 	if (!(e.flags & FLAG_ENTITY_IMAGE)) {
 		if (codecs.decode(e.filename.c_str(), e.image, decodeSettings)) {
 			e.image.transpose(true);
-			//e.image.resize(720,1280);
+			e.image.flipH();
+			e.image.flipV();
+			/* XXX only testing
+			e.image.resize(720,1280);
+			codecs.encode("xxx.png", e.image, encodeSettings);
+			codecs.encode("xxx.tga", e.image, encodeSettings);
+			*/
 			e.flags |= FLAG_ENTITY_IMAGE;
 		}
 	}

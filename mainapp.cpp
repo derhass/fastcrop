@@ -688,6 +688,7 @@ int REALMAIN (int argc, char **argv)
 	app.codecs.registerCodec(codecLibjpeg);
 #endif
 	app.codecs.registerCodec(codecSTBImageLoad);
+	app.codecs.registerCodec(codecSTBImageWrite);
 
 	parseCommandlineArgs(cfg, app, argc, argv);
 

@@ -1,3 +1,5 @@
+#ifdef WITH_LIBJPEG
+
 #include "codec_libjpeg.h"
 
 #include "util.h"
@@ -33,3 +35,4 @@ static bool supportsFormat(const void *header, size_t size, const CCodecSettings
 
 CCodecDesc codecLibjpeg("libjpeg", supportsName,supportsFormat,NULL,NULL);
 
+#endif /* WITH_LIBJPEG */
