@@ -6,8 +6,16 @@
 
 class CImage; // forward image.h
 
+typedef enum {
+	JPEG_SUBSAMPLING_444 = 0,
+	JPEG_SUBSAMPLING_422,
+	JPEG_SUBSAMPLING_420,
+} TJpegSubsamlpingMode;
+
 struct CCodecSettings {
 	float quality;
+	int jpegSmooth;
+	TJpegSubsamlpingMode jpegSubsamplingMode;
 	size_t scanHeaderSize;
 
 	bool  autoRotate;
@@ -16,6 +24,8 @@ struct CCodecSettings {
 
 	CCodecSettings() :
 		quality(0.75),
+		jpegSmooth(0),
+		jpegSubsamplingMode(JPEG_SUBSAMPLING_420),
 		scanHeaderSize(1024),
 		autoRotate(true),
 		forceCodecName(NULL),

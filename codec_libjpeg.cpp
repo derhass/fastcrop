@@ -117,6 +117,145 @@ static bool decode(const char *filename, CImage& img, const CCodecSettings& cfg)
 	return success;
 }
 
-CCodecDesc codecLibjpeg("libjpeg", supportsName,supportsFormat,decode,NULL);
+static bool encode(const char *filename, const CImage& img, const CCodecSettings& cfg)
+{
+	/* TODO: subsampling, progressive, etc... */
+
+	const TImageInfo& info = img.getInfo();
+	if (!img.hasData()) {
+		return false;
+	}
+	if (info.bytesPerChannel != 1) {
+		return false;
+	}
+
+
+
+	struct jpeg_compress_struct cinfo;
+	struct fc_error_mgr jerr;
+	const char* ptr;
+	J_COLOR_SPACE in_color_space = JCS_RGB;
+	J_COLOR_SPACE set_color_space = JCS_YCbCr;
+	int num_components = 3;
+	FILE* outfile = NULL;
+	int i;
+
+	switch (info.channels) {
+		case 1:
+			in_color_space = JCS_GRAYSCALE;
+			set_color_space = JCS_GRAYSCALE;
+			num_components = 1;
+			break;
+		case 2:
+			in_color_space = JCS_UNKNOWN;
+			set_color_space = JCS_UNKNOWN;
+			num_components = 2;
+			break;
+		case 3:
+			in_color_space = JCS_RGB;
+			set_color_space = JCS_YCbCr;
+			num_components = 3;
+			break;
+		case 4:
+			in_color_space = JCS_CMYK;
+			set_color_space = JCS_YCCK;
+			num_components = 4;
+			break;
+		default:
+			return false;
+	}
+
+	int quality = (int)(cfg.quality * 100.0f + 0.5f);
+	if (quality > 100) {
+		quality = 100;
+	}
+	if (quality < 1) {
+		quality = 1;
+	}
+
+	outfile = util::fopen_wrapper(filename, "wb");
+	if (!outfile) {
+		return false;
+	}
+	ptr = (const char*)img.getData();
+	cinfo.err = jpeg_std_error(&jerr.pub);
+	jerr.pub.error_exit = my_error_exit;
+	if (setjmp(jerr.setjmp_buffer)) {
+		jpeg_destroy_compress(&cinfo);
+		if (outfile) {
+			fclose(outfile);
+		}
+		return false;
+	}
+
+	jpeg_create_compress(&cinfo);
+	jpeg_stdio_dest(&cinfo, outfile);
+	cinfo.image_width = (int)info.width;
+	cinfo.image_height = (int)info.height;
+	cinfo.input_components = (int)info.channels;
+	cinfo.in_color_space = in_color_space;
+	cinfo.num_components = num_components;
+
+	jpeg_set_defaults(&cinfo);
+	jpeg_set_colorspace(&cinfo, set_color_space);
+	jpeg_set_quality(&cinfo, quality, TRUE);
+	jpeg_simple_progression(&cinfo);
+	cinfo.dct_method = JDCT_ISLOW;
+	cinfo.optimize_coding = TRUE;
+	cinfo.smoothing_factor = cfg.jpegSmooth;
+	for (i=0; i<cinfo.num_components; i++) {
+		int hf = 1;
+		int vf = 1;
+		if (i == 0 && cinfo.num_components > 1) {
+			switch (cfg.jpegSubsamplingMode) {
+				case JPEG_SUBSAMPLING_444:
+					hf = 1;
+					vf = 1;
+					break;
+				case JPEG_SUBSAMPLING_422:
+					hf = 2;
+					vf = 1;
+					break;
+				case JPEG_SUBSAMPLING_420:
+					hf = 2;
+					vf = 2;
+					break;
+				default:
+					// leave at library defaults
+					hf = 0;
+					vf = 0;
+			}
+		}
+		if (hf > 0) {
+			cinfo.comp_info[i].h_samp_factor = hf;
+		}
+		if (vf > 0) {
+			cinfo.comp_info[i].v_samp_factor = vf;
+		}
+	}
+	jpeg_start_compress(&cinfo, TRUE);
+	/*
+	if (comment) {
+		jpeg_write_marker(&cinfo, JPEG_COM, (unsigned const char*)comment, strlen(comment));
+	}
+	*/
+	size_t stride = info.width * info.channels * info.bytesPerChannel;
+	while (cinfo.next_scanline < cinfo.image_height) {
+		jpeg_write_scanlines(&cinfo, (JSAMPARRAY)&ptr, 1);
+		ptr += stride;
+	}
+	jpeg_finish_compress(&cinfo);
+	jpeg_destroy_compress(&cinfo);
+	bool success = true;
+	if (outfile) {
+		if (ferror(outfile)) {
+			success = false;
+		}
+		fclose(outfile);
+	}
+	return success;
+}
+
+CCodecDesc codecLibjpeg("libjpeg", supportsName,supportsFormat,decode,encode);
 
 #endif /* WITH_LIBJPEG */
