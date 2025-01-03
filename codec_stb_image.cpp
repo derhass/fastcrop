@@ -93,7 +93,7 @@ static bool supportsNameEncode(const char *filename, const char *ext, const CCod
 
 static bool encode(const char *filename, const CImage& img, const CCodecSettings& cfg)
 {
-	const char *ext = util::getExt(filename);
+	const char *ext = (cfg.forceExt)? cfg.forceExt : (util::getExt(filename));
 	if (!ext) {
 		ext = filename;
 	}

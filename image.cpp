@@ -41,6 +41,7 @@ CImage& CImage::operator=(const CImage& other) noexcept
 	if (data && other.data) {
 		memcpy(data, other.data, other.info.getDataSize());
 	}
+	exif = other.exif;
 	return *this;
 }
 
@@ -53,6 +54,7 @@ CImage& CImage::operator=(CImage&& other) noexcept
 	setFormat(other.info);
 	data = other.data;
 	other.data = NULL;
+	exif = other.exif;
 	return *this;
 }
 
@@ -67,6 +69,7 @@ void CImage::dropData() noexcept
 		free(data);
 		data = NULL;
 	}
+	exif.parsed = false;
 }
 
 void CImage::setFormat(const TImageInfo& newInfo) noexcept

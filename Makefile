@@ -27,7 +27,6 @@ else
     IMGUI_MISSING=1
 endif
 
-
 # include paths for the builtin libraries glad and glm. We do not link them,
 # as we directly incorporated the source code into our project
 CPPFLAGS += -I glad/include
@@ -39,6 +38,19 @@ endif
 # Try to find the system's GLFW3 library via pkg-config
 CPPFLAGS += $(shell pkg-config --cflags glfw3)
 LDFLAGS += $(shell pkg-config --static --libs glfw3) 
+
+#check if libjpeg is available
+$(shell pkg-config --exists libjpeg)
+ifeq ($(.SHELLSTATUS), 0)
+    WITH_LIBJPEG=1
+else
+    WITH_LIBJPEG=0
+endif
+
+ifeq ($(WITH_LIBJPEG), 1)
+    CPPFLAGS += -DWITH_LIBJPEG $(shell pkg-config --cflags libjpeg)
+    LDFLAGS += $(shell pkg-config --libs libjpeg)
+endif
 
 # additional libraries
 LDFLAGS += -lrt -lm
@@ -97,6 +109,9 @@ $(APPNAME): $(OBJECTS) $(DEPDIR)/dependencies
 	$(CXX) $(CFLAGS) $(OBJECTS) $(LDFLAGS) -o$(APPNAME)
 ifeq ($(IMGUI_MISSING), 1)
 	@echo "WARNING: Build without imgui, did you forget to check out the submodule?"
+endif
+ifneq ($(WITH_LIBJPEG), 1)
+	@echo "WARNING: Build without libjpeg"
 endif
 
 # remove all unneeded files

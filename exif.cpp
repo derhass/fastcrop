@@ -12,6 +12,15 @@ typedef enum {
 } TMetaTagType;
 
 typedef enum {
+	FC_META_ST_UNKNOWN = 0,
+	FC_META_ST_INVALID,
+	FC_META_ST_EXIF,
+	FC_META_ST_TIFF,
+	FC_META_ST_IFD,
+	FC_META_ST_SUBIFD,
+} TMetaTagSubType;
+
+typedef enum {
 	FC_META_DTYPE_TIFF_BEGIN_MARKER = 0,
 	FC_META_DTYPE_UNUSED = FC_META_DTYPE_TIFF_BEGIN_MARKER,
 	FC_META_DTYPE_BYTE,
@@ -65,7 +74,7 @@ typedef struct fc_tiff_decoder_s {
 	uint32_t meta_offset; /* recursive collector */
 
 	unsigned int (*handleEntry)(struct fc_tiff_decoder_s* td, const fc_tiff_ifd_entry_t* e, uint32_t offset, fc_tiff_ifd_ctx_t* ifd);
-	void(*handleRecursion)(int mode, TMetaTagType baseType, fc_tiff_decoder_s* td, const fc_tiff_ifd_entry_t* e, uint32_t offset, fc_tiff_ifd_ctx_t* ifd, const wchar_t *name, unsigned int idx);
+	void(*handleRecursion)(int mode, TMetaTagType baseType, fc_tiff_decoder_s* td, const fc_tiff_ifd_entry_t* e, uint32_t offset, fc_tiff_ifd_ctx_t* ifd, TMetaTagSubType, unsigned int idx);
 	void* userPtr;
 	//TCtx* ctx;
 } fc_tiff_decoder_t;
@@ -585,7 +594,7 @@ fc_tiff_handle_entry(fc_tiff_decoder_t* td, const fc_tiff_ifd_entry_t* e, uint32
 	case FC_TIFF_EXIF:
 		for (i = 0; i < e->count; i++) {
 			if (td->handleRecursion) {
-				td->handleRecursion(1, ifd->baseType, td, e, offset, ifd, L"EXIF", i);
+				td->handleRecursion(1, ifd->baseType, td, e, offset, ifd, FC_META_ST_EXIF, i);
 			}
 
 			fc_tiff_get_value_at_idx_as_u4(td, &suboffset, (TMetaDType)e->type, i, offset);
@@ -594,7 +603,7 @@ fc_tiff_handle_entry(fc_tiff_decoder_t* td, const fc_tiff_ifd_entry_t* e, uint32
 				suboffset = fc_tiff_decode_ifd(td, suboffset, 1, subcnt++, FC_META_TAG_EXIF);
 			}
 			if (td->handleRecursion) {
-				td->handleRecursion(0, ifd->baseType, td, e, offset, ifd, L"EXIF", i);
+				td->handleRecursion(0, ifd->baseType, td, e, offset, ifd, FC_META_ST_EXIF, i);
 			}
 		}
 		return 0;
@@ -602,7 +611,7 @@ fc_tiff_handle_entry(fc_tiff_decoder_t* td, const fc_tiff_ifd_entry_t* e, uint32
 	case FC_TIFF_SUBIFD:
 		for (i = 0; i < e->count; i++) {
 			if (td->handleRecursion) {
-				td->handleRecursion(1, ifd->baseType, td, e, offset, ifd, L"SUBIFD", i);
+				td->handleRecursion(1, ifd->baseType, td, e, offset, ifd, FC_META_ST_SUBIFD, i);
 			}
 			fc_tiff_get_value_at_idx_as_u4(td, &suboffset, (TMetaDType)e->type, i, offset);
 			subcnt = 0;
@@ -610,7 +619,7 @@ fc_tiff_handle_entry(fc_tiff_decoder_t* td, const fc_tiff_ifd_entry_t* e, uint32
 				suboffset = fc_tiff_decode_ifd(td, suboffset, 1, subcnt++, FC_META_TAG_TIFF);
 			}
 			if (td->handleRecursion) {
-				td->handleRecursion(0, ifd->baseType, td, e, offset, ifd, L"SUBIFD", i);
+				td->handleRecursion(0, ifd->baseType, td, e, offset, ifd, FC_META_ST_SUBIFD, i);
 			}
 		}
 		return 0;
@@ -647,7 +656,7 @@ fc_tiff_decode_ifd(fc_tiff_decoder_t* td, uint32_t offset, int end, unsigned int
 	}
 
 	if (td->handleRecursion) {
-		td->handleRecursion(1, ifd.baseType, td, NULL, 0, &ifd, L"IFD", ifd_index);
+		td->handleRecursion(1, ifd.baseType, td, NULL, 0, &ifd, FC_META_ST_IFD, ifd_index);
 	}
 
 
@@ -692,7 +701,7 @@ fc_tiff_decode_ifd(fc_tiff_decoder_t* td, uint32_t offset, int end, unsigned int
 	}
 
 	if (td->handleRecursion) {
-		td->handleRecursion(0, ifd.baseType, td, NULL, 0, &ifd, L"IFD", ifd_index);
+		td->handleRecursion(0, ifd.baseType, td, NULL, 0, &ifd, FC_META_ST_IFD, ifd_index);
 	}
 
 
@@ -779,16 +788,16 @@ fc_tiff_decode_internal(fc_tiff_decoder_t* td, TMetaTagType baseType, bool mayHa
 	}
 
 	unsigned int ifd_index = 0;
-	const wchar_t* mode;
+	TMetaTagSubType mode;
 	switch (baseType) {
 	case FC_META_TAG_EXIF:
-		mode = L"EXIF";
+		mode = FC_META_ST_EXIF;
 		break;
 	case FC_META_TAG_TIFF:
-		mode = L"TIFF";
+		mode = FC_META_ST_TIFF;
 		break;
 	default:
-		mode = L"<UNKNOWN>";
+		mode = FC_META_ST_UNKNOWN;
 	}
 	if (td->handleRecursion) {
 		td->handleRecursion(1, baseType,  td, NULL, 0, NULL, mode, 0);
@@ -837,11 +846,63 @@ unsigned int handleEntryFindThumbnailJPEG(fc_tiff_decoder_t * td, const fc_tiff_
 	return 0;
 }
 
+const int stackDepth = 8;
+
+typedef struct {
+	TExifData *data;
+	int depth;
+	TMetaTagSubType stackT[stackDepth];
+	unsigned        stackI[stackDepth];
+} TExifParseCtx;
+
+static bool getCurLevel(const TExifParseCtx *ctx, TMetaTagSubType& st, unsigned& idx)
+{
+	st = FC_META_ST_INVALID;
+	idx = (unsigned)-1;
+	if (ctx) {
+		if (ctx->depth > 0 && ctx->depth <= stackDepth) {
+			st = ctx->stackT[ctx->depth - 1];
+			idx= ctx->stackI[ctx->depth - 1];
+			return true;
+		}
+	}
+	return false;
+}
+
+static void handleRecursionParse(int mode, TMetaTagType baseType, fc_tiff_decoder_t * td, const fc_tiff_ifd_entry_t * e, uint32_t offset, fc_tiff_ifd_ctx_t * ifd, TMetaTagSubType subType, unsigned int idx )
+{
+	TExifParseCtx *ctx = (TExifParseCtx*)td->userPtr;
+	if (ctx) {
+		if (mode) {
+			if (ctx->depth < stackDepth) {
+				ctx->stackT[ctx->depth] = subType;
+				ctx->stackI[ctx->depth] = idx;
+			}
+			ctx->depth++;
+		} else {
+			ctx->depth--;
+		}
+	}
+}
+
 static unsigned int handleEntryParse(fc_tiff_decoder_t * td, const fc_tiff_ifd_entry_t * e, uint32_t offset, fc_tiff_ifd_ctx_t * ifd)
 {
-	TExifData* data = (TExifData*)td->userPtr;
-	(void)data;
-	util::info("XXX %u %d",e->tag,(int)e->type);
+	TExifParseCtx *ctx = (TExifParseCtx*)td->userPtr;
+	if (ctx) {
+		TExifData* data = ctx->data;
+		if (data) {
+			uint32_t val[2];
+			TMetaTagSubType st;
+			unsigned idx;
+			getCurLevel(ctx, st, idx);
+			if (st == FC_META_ST_IFD && idx == 0) {
+				if (e->tag == 0x112) {
+					fc_tiff_get_u4(td, val, (TMetaDType)e->type, 1, offset);
+					data->orientation = (uint16_t)val[0];
+				}
+			}
+		}
+	}
 	return 0;
 }
 
@@ -896,12 +957,19 @@ extern size_t EXIFFindBegin(const void* data, size_t maxSize)
 
 extern bool EXIFParse(TExifData& info, const void* data, size_t size)
 {
+	info.parsed = false;
+	TExifParseCtx ctx;
+	ctx.depth = 0;
+	ctx.data = &info;
+
 	fc_tiff_decoder_t td;
 	fc_tiff_decoder_init(&td);
-	td.userPtr = &info;
+	td.userPtr = &ctx;
 	td.handleEntry = handleEntryParse;
+	td.handleRecursion = handleRecursionParse;
 	if (fc_tiff_decode_memory(&td, (const uint8_t*)data, size, FC_META_TAG_EXIF, true)) {
 		return false;
 	}
+	info.parsed = true;
 	return true;
 }

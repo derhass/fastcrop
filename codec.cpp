@@ -2,6 +2,7 @@
 #include "util.h"
 
 #include <stdlib.h>
+#include <string.h>
 
 void CCodecs::registerCodec(const CCodecDesc& desc)
 {
@@ -45,13 +46,22 @@ bool CCodecs::decode(const char *filename, CImage& img, const CCodecSettings& cf
 		}
 	        if (!tryThis && c.supportsName) {
 			if (!ext) {
-				ext = util::getExt(filename);
+				if (cfg.forceExt) {
+					ext = cfg.forceExt;
+				} else {
+					ext = util::getExt(filename);
+				}
 			}
 			try {
 				if (c.supportsName(filename, ext, cfg)) {
 					tryThis = true;
 				}
 			} catch(...) {}
+		}
+		if (c.decode && tryThis && cfg.forceCodecName) {
+			if (strcmp(c.name, cfg.forceCodecName)) {
+				tryThis = false;
+			}
 		}
 		if (c.decode && tryThis) {
 			try {
@@ -76,7 +86,7 @@ bool CCodecs::encode(const char *filename, const CImage& img, const CCodecSettin
 	}
 
 	bool success = false;
-	const char *ext = util::getExt(filename);
+	const char *ext = (cfg.forceExt)?cfg.forceExt : (util::getExt(filename));
 
 	for (size_t i=0; i<codecs.size() && !success; i++) {
 		bool tryThis = false;
@@ -87,6 +97,11 @@ bool CCodecs::encode(const char *filename, const CImage& img, const CCodecSettin
 					tryThis = true;
 				}
 			} catch(...) {}
+		}
+		if (c.encode && tryThis && cfg.forceCodecName) {
+			if (strcmp(c.name, cfg.forceCodecName)) {
+				tryThis = false;
+			}
 		}
 		if (c.encode && tryThis) {
 			try {

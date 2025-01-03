@@ -10,9 +10,16 @@ struct CCodecSettings {
 	float quality;
 	size_t scanHeaderSize;
 
+	bool  autoRotate;
+	const char *forceCodecName;
+	const char *forceExt;
+
 	CCodecSettings() :
 		quality(0.75),
-		scanHeaderSize(1024)
+		scanHeaderSize(1024),
+		autoRotate(true),
+		forceCodecName(NULL),
+		forceExt(NULL)
 	{}
 };
 

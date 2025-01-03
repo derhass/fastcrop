@@ -1,6 +1,7 @@
 #ifndef FASTCROP_IMAGE_H
 #define FASTCROP_IMAGE_H
 
+#include "exif.h"
 #include <unistd.h>
 
 const size_t maxImageSize = 1*1024U*1024U*1024U;
@@ -62,6 +63,7 @@ struct TImageInfo {
 class CImage {
 	private:
 		TImageInfo info;
+		TExifData  exif;
 
 		void* data;
 
@@ -84,6 +86,8 @@ class CImage {
 		void* getData() noexcept; // NULL if invalid
 		bool hasData() const noexcept;
 		const TImageInfo& getInfo() const noexcept {return info;}
+		const TExifData& getExif() const noexcept {return exif;}
+		TExifData& getExif() noexcept {return exif;}
 
 		bool create(const TImageInfo& newInfo) noexcept;
 		bool adopt(const TImageInfo& newInfo, void *dataPtr) noexcept;
