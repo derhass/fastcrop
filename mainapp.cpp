@@ -330,9 +330,18 @@ static void processInputs(MainApp *app)
 		return;
 	}
 
+
 	int leftButton = glfwGetMouseButton(app->win, GLFW_MOUSE_BUTTON_LEFT);
 	int rightButton = glfwGetMouseButton(app->win, GLFW_MOUSE_BUTTON_RIGHT);
-	(void)leftButton; (void)rightButton;
+
+	if (leftButton || rightButton) {
+		double mousePosPixel[2];
+		mousePosPixel[0] = app->mousePosWin[0] * app->winToPixel[0];
+		mousePosPixel[1] = app->mousePosWin[1] * app->winToPixel[1];
+		if (leftButton) {
+			app->controller.doDragCrop(mousePosPixel);
+		}
+	}
 }
 
 

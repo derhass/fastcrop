@@ -75,12 +75,22 @@ class CController {
 
 		size_t currentEntity;
 		TCropState currentCropSate;
-	
+
+		bool inDragCrop;
+		double dragCropMouseBegin[2];
+
 		bool uploadGLImage(CImageEntity& e);
 		void dropGLImage(CImageEntity& e);
 		bool prepareImageEntity(CImageEntity& e);
 
 		CImageEntity& getCurrentInternal();
+
+		void winToNC(const double winPos[2], double nc[2]) const;
+		void NCtoWin(const double nc[2], double winPos[2]) const;
+		void NCtoImage(const CImageEntity& e, const double nc[2], double imgPos[2]) const;
+		void imageToNC(const CImageEntity& e, const double imgPos[2], double nc[2]) const;
+		void winToImage(const CImageEntity& e, const double winPos[2], double imgPos[2]) const;
+		void imageToWin(const CImageEntity& e, const double imgPos[2], double winPos[2]) const;
 
 	public:
 		CController(CCodecs& c, const CCodecSettings& ds, const CCodecSettings& es);
@@ -102,10 +112,15 @@ class CController {
 		const TCropState& getCropState(const CImageEntity& e, bool& croppingEnabled) const;
 		void applyCropping(const TImageInfo& img, const TCropState& cs, int32_t pos[2], int32_t size[2]) const;
 
+		void getDisplayTransform(const CImageEntity& e, double scale[2], double offset[2], bool minusOneToOne) const;
+
 		void adjustZoom(float factor);
 		void setZoom(float factor, bool relativeToPixels = false);
 
 		void addFile(const char *name);
+
+		void doDragCrop(double winPos[2]);
+		void endDragCrop();
 };
 
 #endif /* !FASTCROP_CONTROLLER_H*/

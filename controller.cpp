@@ -9,7 +9,8 @@ CController::CController(CCodecs& c, const CCodecSettings& ds, const CCodecSetti
 	codecs(c),
 	decodeSettings(ds),
 	encodeSettings(es),
-	currentEntity(0)
+	currentEntity(0),
+	inDragCrop(false)
 {
 	// TODO: only for testing
 	currentCropSate.aspectRatio[1] = 3.0f;
@@ -48,14 +49,7 @@ bool CController::prepareImageEntity(CImageEntity& e)
 {
 	if (!(e.flags & FLAG_ENTITY_IMAGE)) {
 		if (codecs.decode(e.filename.c_str(), e.image, decodeSettings)) {
-			e.image.transpose(true);
-			e.image.flipH();
-			e.image.flipV();
-			/* XXX only testing
-			e.image.resize(720,1280);
-			codecs.encode("xxx.png", e.image, encodeSettings);
-			codecs.encode("xxx.tga", e.image, encodeSettings);
-			*/
+			//e.image.transpose(true); // XXX
 			e.flags |= FLAG_ENTITY_IMAGE;
 		}
 	}
@@ -222,6 +216,88 @@ void CController::setZoom(float factor, bool relativeToPixels)
 	}
 	CImageEntity& e = getCurrentInternal();
 	e.display.zoom = baseFactor * factor;
+}
+
+void CController::getDisplayTransform(const CImageEntity& e, double scale[2], double offset[2], bool minusOneToOne) const
+{
+	double winAspect = (double)windowState.dims[0] / (double)windowState.dims[1];
+	double imgAspect;
+	if (e.flags & FLAG_ENTITY_IMAGE) {
+		const TImageInfo& info = e.image.getInfo();
+		imgAspect = ((double)info.width / (double)info.height) * e.display.aspectCorrection;
+	} else {
+		imgAspect = e.display.aspectCorrection;
+	}
+	double s = e.display.zoom;
+	if (minusOneToOne) {
+		s *= 2.0;
+	}
+	if (imgAspect >= winAspect) {
+		scale[0] = s;
+		scale[1] = s * winAspect / imgAspect;
+	} else {
+		scale[0] = s * (imgAspect / winAspect);
+		scale[1] = s;
+	}
+
+	if (minusOneToOne) {
+		offset[0] = -0.5 * scale[0];
+		offset[1] = -0.5 * scale[1];
+	} else {
+		offset[0] = 0.5 * (1.0 - scale[0]);
+		offset[1] = 0.5 * (1.0 - scale[1]);
+	}
+}
+
+void CController::winToNC(const double winPos[2], double nc[2]) const
+{
+	nc[0] = winPos[0] / (double)windowState.dims[0];
+	nc[1] = 1.0 - (winPos[1] / (double)windowState.dims[1]);
+}
+
+void CController::NCtoWin(const double nc[2], double winPos[2]) const
+{
+	winPos[0] = nc[0] * (double)windowState.dims[0];
+	winPos[1] = (1.0 - nc[1]) * (double)windowState.dims[1];
+}
+
+void CController::NCtoImage(const CImageEntity& e, const double nc[2], double imgPos[2]) const
+{
+	double s[2], o[2];
+	getDisplayTransform(e, s, o, false);
+	imgPos[0] = (nc[0] - o[0]) / s[0];
+	imgPos[1] = (nc[1] - o[1]) / s[1];
+}
+
+void CController::imageToNC(const CImageEntity& e, const double imgPos[2], double nc[2]) const
+{
+	double s[2], o[2];
+	getDisplayTransform(e, s, o, false);
+	nc[0] = s[0] * imgPos[0] + o[0];
+	nc[1] = s[1] * imgPos[1] + o[1];
+}
+
+
+void CController::winToImage(const CImageEntity& e, const double winPos[2], double imgPos[2]) const
+{
+	double nc[2];
+	winToNC(winPos, nc);
+	NCtoImage(e, nc, imgPos);
+}
+
+void CController::imageToWin(const CImageEntity& e, const double imgPos[2], double winPos[2]) const
+{
+	double nc[2];
+	imageToNC(e, imgPos, nc);
+	NCtoWin(nc, winPos);
+}
+
+void CController::doDragCrop(double winPos[2])
+{
+	const CImageEntity& e = getCurrentInternal();
+	double imgPos[2];
+	winToImage(e, winPos, imgPos);
+	util::info("XXX %f %f", imgPos[0], imgPos[1]);
 }
 
 void CController::addFile(const char *name)

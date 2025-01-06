@@ -169,29 +169,21 @@ void CRenderer::prepareUBOs(const CImageEntity& e, const CController& ctrl)
 	}
 
 	if (ubosDirty & (1U<<(unsigned)UBO_DISPLAY_STATE)) {
-		const TWindowState& ws = ctrl.getWindowState();
-		float winAspect = (float)ws.dims[0] / (float)ws.dims[1];
-		float imgAspect;
+		double scale[2];
+		double offset[2];
+		ctrl.getDisplayTransform(e, scale, offset, true);
 		if (e.flags & FLAG_ENTITY_IMAGE) {
 			const TImageInfo& info = e.image.getInfo();
-			imgAspect = ((float)info.width / (float)info.height) * e.display.aspectCorrection;
 			uboDisplayState.imgDims[0] = (int32_t)info.width;
 			uboDisplayState.imgDims[1] = (int32_t)info.height;
 		} else {
-			imgAspect = e.display.aspectCorrection;
 			uboDisplayState.imgDims[0] = (int32_t)1024;
 			uboDisplayState.imgDims[1] = (int32_t)1024;
 		}
-		float s = 2.0f * e.display.zoom;
-		if (imgAspect >= winAspect) {
-			uboDisplayState.scale[0] = s;
-			uboDisplayState.scale[1] = s * winAspect / imgAspect;
-		} else {
-			uboDisplayState.scale[0] = s * (imgAspect / winAspect);
-			uboDisplayState.scale[1] = s;
-		}
-		uboDisplayState.offset[0] = -0.5f * uboDisplayState.scale[0];
-		uboDisplayState.offset[1] = -0.5f * uboDisplayState.scale[1];
+		uboDisplayState.scale[0] = (float)scale[0];
+		uboDisplayState.scale[1] = (float)scale[1];
+		uboDisplayState.offset[0] = (float)offset[0];
+		uboDisplayState.offset[1] = (float)offset[1];
 		updateUBO(UBO_DISPLAY_STATE);
 		ubosDirty &= ~(1U<<(unsigned)UBO_DISPLAY_STATE);
 	}
