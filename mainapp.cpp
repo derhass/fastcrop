@@ -23,6 +23,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+const int baseMods = (GLFW_MOD_CONTROL | GLFW_MOD_SHIFT | GLFW_MOD_ALT);
+
 /****************************************************************************
  * DATA STRUCTURES                                                          *
  ****************************************************************************/
@@ -96,6 +98,8 @@ typedef struct TMainApp {
 
 	/* input state */
 	double mousePosWin[2];
+	double mousePosPixel[2];
+	int modifiers;
 
 	// some gl limits
 	int maxGlTextureSize;
@@ -302,7 +306,80 @@ static void callback_Keyboard(GLFWwindow *win, int key, int scancode, int action
 				case GLFW_KEY_ESCAPE:
 					glfwSetWindowShouldClose(win, 1);
 					break;
+				case GLFW_KEY_LEFT_CONTROL:
+				case GLFW_KEY_RIGHT_CONTROL:
+					app->modifiers |= GLFW_MOD_CONTROL;
+					break;
+				case GLFW_KEY_LEFT_SHIFT:
+				case GLFW_KEY_RIGHT_SHIFT:
+					app->modifiers |= GLFW_MOD_SHIFT;
+					break;
+				case GLFW_KEY_LEFT_ALT:
+				case GLFW_KEY_RIGHT_ALT:
+					app->modifiers |= GLFW_MOD_ALT;
+					break;
 			}
+		} else if (action == GLFW_RELEASE) {
+			switch(key) {
+				case GLFW_KEY_LEFT_CONTROL:
+				case GLFW_KEY_RIGHT_CONTROL:
+					app->modifiers &= ~GLFW_MOD_CONTROL;
+					break;
+				case GLFW_KEY_LEFT_SHIFT:
+				case GLFW_KEY_RIGHT_SHIFT:
+					app->modifiers &= ~GLFW_MOD_SHIFT;
+					break;
+				case GLFW_KEY_LEFT_ALT:
+				case GLFW_KEY_RIGHT_ALT:
+					app->modifiers &= ~GLFW_MOD_ALT;
+					break;
+			}
+		}
+	}
+}
+
+/* registered mouse position callback */
+static void callback_mouse_position(GLFWwindow* win, double xpos, double ypos)
+{
+	MainApp *app=(MainApp*)glfwGetWindowUserPointer(win);
+	if (isOurInput(app, true)) {
+		bool moved = ((xpos != app->mousePosWin[0]) || (ypos != app->mousePosWin[1]));
+		if (moved) {
+			app->mousePosWin[0] = xpos;
+			app->mousePosWin[1] = ypos;
+			app->mousePosPixel[0] = app->mousePosWin[0] * app->winToPixel[0];
+			app->mousePosPixel[1] = app->mousePosWin[1] * app->winToPixel[1];
+
+			if (glfwGetMouseButton(win,GLFW_MOUSE_BUTTON_LEFT)) {
+				if (app->controller.doDragCrop(app->mousePosPixel)) {
+					app->renderer.invalidateCropState();
+				}
+			}
+		}
+	}
+}
+
+/* registered mouse button callback */
+static void callback_mouse_button(GLFWwindow* win, int button, int action, int mods)
+{
+	MainApp *app=(MainApp*)glfwGetWindowUserPointer(win);
+	if (isOurInput(app, true)) {
+		if (action == GLFW_PRESS) {
+			if (button == GLFW_MOUSE_BUTTON_LEFT) {
+				if (!(mods & baseMods)) {
+					app->controller.beginDragCrop(app->mousePosPixel);
+				}
+			}
+		} else if (action == GLFW_RELEASE) {
+			if (button == GLFW_MOUSE_BUTTON_LEFT) {
+				if (!(mods & baseMods)) {
+					if (!app->controller.endDragCrop()) {
+						// normal click
+					}
+				}
+
+			}
+
 		}
 	}
 }
@@ -313,37 +390,24 @@ static void callback_scroll(GLFWwindow *win, double x, double y)
 	MainApp *app=(MainApp*)glfwGetWindowUserPointer(win);
 	if (isOurInput(app, true)) {
 		if (y > 0.1) {
-			app->controller.adjustZoom((float)(y * sqrt(2.0)));
-			app->renderer.invalidateDisplayState();
+			if (app->modifiers & GLFW_MOD_CONTROL) {
+				app->controller.adjustZoom((float)(y * sqrt(2.0)));
+				app->renderer.invalidateDisplayState();
+			} else if (!(app->modifiers & baseMods)) {
+				app->controller.adjustCropScale((float)(y * sqrt(2.0)));
+				app->renderer.invalidateCropState();
+			}
 		} else if ( y < -0.1) {
-			app->controller.adjustZoom((float)(-1.0 / (sqrt(2.0) * y)));
-			app->renderer.invalidateDisplayState();
+			if (app->modifiers & GLFW_MOD_CONTROL) {
+				app->controller.adjustZoom((float)(-1.0 / (sqrt(2.0) * y)));
+				app->renderer.invalidateDisplayState();
+			} else if (!(app->modifiers & baseMods)) {
+				app->controller.adjustCropScale((float)(-1.0 / (sqrt(2.0) * y)));
+				app->renderer.invalidateCropState();
+			}
 		}
 	}
 }
-
-/* called by mainLoop(): process further inputs */
-static void processInputs(MainApp *app)
-{
-	glfwGetCursorPos(app->win, &app->mousePosWin[0], &app->mousePosWin[1]);
-	if (!isOurInput(app, true)) {
-		return;
-	}
-
-
-	int leftButton = glfwGetMouseButton(app->win, GLFW_MOUSE_BUTTON_LEFT);
-	int rightButton = glfwGetMouseButton(app->win, GLFW_MOUSE_BUTTON_RIGHT);
-
-	if (leftButton || rightButton) {
-		double mousePosPixel[2];
-		mousePosPixel[0] = app->mousePosWin[0] * app->winToPixel[0];
-		mousePosPixel[1] = app->mousePosWin[1] * app->winToPixel[1];
-		if (leftButton) {
-			app->controller.doDragCrop(mousePosPixel);
-		}
-	}
-}
-
 
 /****************************************************************************
  * GLOBAL INITIALIZATION AND CLEANUP                                        *
@@ -425,6 +489,9 @@ bool initMainApp(MainApp *app, AppConfig& cfg)
 	app->winToPixel[1] = 1.0f;
 	app->mousePosWin[0] = 0.0f;
 	app->mousePosWin[1] = 0.0f;
+	app->mousePosPixel[0] = 0.0f;
+	app->mousePosPixel[1] = 0.0f;
+	app->modifiers = 0;
 
 	if (!monitor) {
 		glfwSetWindowPos(app->win, x, y);
@@ -437,6 +504,8 @@ bool initMainApp(MainApp *app, AppConfig& cfg)
 	glfwSetFramebufferSizeCallback(app->win, callback_Resize);
 	glfwSetWindowSizeCallback(app->win, callback_WinResize);
 	glfwSetKeyCallback(app->win, callback_Keyboard);
+	glfwSetCursorPosCallback(app->win, callback_mouse_position);
+	glfwSetMouseButtonCallback(app->win, callback_mouse_button);
 	glfwSetScrollCallback(app->win, callback_scroll);
 
 	/* make the context the current context (of the current thread) */
@@ -607,9 +676,6 @@ static void mainLoop(MainApp *app, AppConfig& cfg)
 		 * will call the registered callback functions to forward
 		 * the events to us. */
 		glfwPollEvents();
-
-		/* process further inputs */
-		processInputs(app);
 
 		/* call the display function */
 		if (!displayFunc(app, cfg)) {

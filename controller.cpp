@@ -10,7 +10,7 @@ CController::CController(CCodecs& c, const CCodecSettings& ds, const CCodecSetti
 	decodeSettings(ds),
 	encodeSettings(es),
 	currentEntity(0),
-	inDragCrop(false)
+	inDragCrop(0)
 {
 	// TODO: only for testing
 	currentCropSate.aspectRatio[1] = 3.0f;
@@ -116,6 +116,16 @@ const CImageEntity& CController::getCurrent()
 const TDisplayState& CController::getDisplayState(const CImageEntity& e) const
 {
 	return e.display;
+}
+
+TCropState& CController::getCropStateInternal(CImageEntity& e, bool& croppingEnabled)
+{
+	if (e.flags & FLAG_ENTITY_CROPPED) {
+		croppingEnabled = true;
+		return e.crop;
+	}
+	croppingEnabled = true; // TODO: switchable mode
+	return currentCropSate;
 }
 
 const TCropState& CController::getCropState(const CImageEntity& e, bool& croppingEnabled) const
@@ -314,18 +324,120 @@ void CController::imageToCropNC(const CImageEntity& e, const double imgPos[2], d
 
 void CController::cropNCToImage(const CImageEntity& e, const double cropPosNC[2], double imgPos[2]) const
 {
+
+	double s[2];
+	double o[2];
+	bool enabled;
+	const TCropState& cs = getCropState(e, enabled);
+	getCropSizeNC(e.image.getInfo(), cs, s);
+	o[0] = cs.posCenter[0] - 0.5 * s[0];
+	o[1] = cs.posCenter[1] - 0.5 * s[1];
+	imgPos[0] = cropPosNC[0] * s[0] + o[0];
+	imgPos[1] = cropPosNC[1] * s[1] + o[1];
 }
 
-void CController::doDragCrop(double winPos[2])
+void CController::clampCrop(const CImageEntity& e, TCropState& cs)
+{
+	double s[2];
+	getCropSizeNC(e.image.getInfo(), cs, s);
+	for (int i=0; i<2; i++) {
+		if (cs.posCenter[i] - 0.5 * s[i] < 0.0) {
+			cs.posCenter[i] = 0.5 * s[i];
+		} else if (cs.posCenter[i] + 0.5 * s[i] > 1.0) {
+			cs.posCenter[i] = 1.0 - 0.5 * s[i];
+		}
+	}
+}
+
+bool CController::beginDragCrop(const double winPos[2])
 {
 	const CImageEntity& e = getCurrentInternal();
 	double imgPos[2];
 	double cropPos[2];
+
 	winToImage(e, winPos, imgPos);
 	imageToCropNC(e, imgPos, cropPos);
-	util::info("XXX %f %f %f %f", imgPos[0], imgPos[1], cropPos[0], cropPos[1]);
+	if (cropPos[0] >= 0.0 && cropPos[0] <= 1.0 && cropPos[1] >= 0.0 && cropPos[1] <= 1.0) {
+		inDragCrop = 1;
+		dragCropMouseBegin[0] = winPos[0];
+		dragCropMouseBegin[1] = winPos[1];
+		dragCropNCBegin[0] = cropPos[0];
+		dragCropNCBegin[1] = cropPos[1];
+		return true;
+	}
+	return false;
 }
 
+bool CController::doDragCrop(const double winPos[2])
+{
+	if (!inDragCrop) {
+		return false;
+	}
+
+	if ((winPos[0] != dragCropMouseBegin[0]) || (winPos[1] != dragCropMouseBegin[1])) {
+		inDragCrop = 2;
+	}
+	if (inDragCrop >= 2) {
+		bool enabled;
+		CImageEntity& e = getCurrentInternal();
+		TCropState& cs = getCropStateInternal(e,enabled);
+		if (enabled) {
+			double imgPos[2];
+			double dragPos[2];
+			winToImage(e, winPos, imgPos);
+			cropNCToImage(e, dragCropNCBegin, dragPos);
+
+			cs.posCenter[0] -= (dragPos[0] - imgPos[0]);
+			cs.posCenter[1] -= (dragPos[1] - imgPos[1]);
+			clampCrop(e, cs);
+			return true;
+		}
+	}
+	return false;
+}
+
+bool CController::endDragCrop()
+{
+	bool old = (inDragCrop >= 2);
+	inDragCrop = 0;
+	return old;
+}
+
+void CController::adjustCropScale(float factor)
+{
+	CImageEntity& e = getCurrentInternal();
+	bool enabled;
+	TCropState& cs=getCropStateInternal(e,enabled);
+	if (enabled) {
+		cs.scale *= factor;
+		if (cs.scale < 1.0e-6f) {
+			cs.scale = 1.0e-6f;
+		}
+		float delta = 1.0f - e.crop.scale;
+		if (delta > 1.0e-3f &&  delta < 1.0e-3f) {
+			cs.scale = 1.0f;
+		}
+		if (cs.scale > 1.0f) {
+			cs.scale = 1.0f;
+		}
+		clampCrop(e, cs);
+	}
+}
+
+void CController::setCropScale(float factor)
+{
+	float baseFactor = 1.0f;
+	CImageEntity& e = getCurrentInternal();
+	bool enabled;
+	TCropState& cs=getCropStateInternal(e,enabled);
+	if (enabled) {
+		cs.scale = baseFactor * factor;
+		if (cs.scale > 1.0f) {
+			cs.scale = 1.0f;
+		}
+		clampCrop(e, cs);
+	}
+}
 void CController::addFile(const char *name)
 {
 	CImageEntity *e = new CImageEntity();

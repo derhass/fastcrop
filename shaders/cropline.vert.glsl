@@ -36,6 +36,7 @@ void main()
 	vec2 win = round((ndc * 0.5 + vec2(0.5)) * wd);
 	win = win + (vec2(s) - vec2(0.5));
 	ndc = (win / wd) * 2.0 - vec2(1.0);
+	ndc.y = - ndc.y;
 
 	gl_Position = vec4(ndc, 0.0, 1.0);
 }

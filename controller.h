@@ -76,8 +76,9 @@ class CController {
 		size_t currentEntity;
 		TCropState currentCropSate;
 
-		bool inDragCrop;
+		int inDragCrop;
 		double dragCropMouseBegin[2];
+		double dragCropNCBegin[2];
 
 		bool uploadGLImage(CImageEntity& e);
 		void dropGLImage(CImageEntity& e);
@@ -92,9 +93,11 @@ class CController {
 		void winToImage(const CImageEntity& e, const double winPos[2], double imgPos[2]) const;
 		void imageToWin(const CImageEntity& e, const double imgPos[2], double winPos[2]) const;
 
+		TCropState& getCropStateInternal(CImageEntity& e, bool& croppingEnabled);
 		void getCropSizeNC(const TImageInfo& info, const TCropState& cs, double s[2]) const;
 		void imageToCropNC(const CImageEntity& e, const double imgPos[2], double cropPosNC[2]) const;
 		void cropNCToImage(const CImageEntity& e, const double cropPosNC[2], double imgPos[2]) const;
+		void clampCrop(const CImageEntity& e, TCropState& cs);
 
 	public:
 		CController(CCodecs& c, const CCodecSettings& ds, const CCodecSettings& es);
@@ -123,8 +126,12 @@ class CController {
 
 		void addFile(const char *name);
 
-		void doDragCrop(double winPos[2]);
-		void endDragCrop();
+		bool beginDragCrop(const double winPos[2]);
+		bool doDragCrop(const double winPos[2]);
+		bool endDragCrop();
+
+		void adjustCropScale(float factor);
+		void setCropScale(float factor);
 };
 
 #endif /* !FASTCROP_CONTROLLER_H*/
