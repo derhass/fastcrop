@@ -128,28 +128,35 @@ const TCropState& CController::getCropState(const CImageEntity& e, bool& croppin
 	return currentCropSate;
 }
 
-void CController::applyCropping(const TImageInfo& info, const TCropState& cs, int32_t pos[2], int32_t size[2]) const
+void CController::getCropSizeNC(const TImageInfo& info, const TCropState& cs, double s[2]) const
 {
-	float is[2];
-	is[0] = (float)info.width;
-	is[1] = (float)info.height;
-	float imgAspect = is[0]/is[1];
-	float cropAspect = cs.aspectRatio[0] / cs.aspectRatio[1];
-	float s[2],sp[2];
+	double is[2];
+	is[0] = (double)info.width;
+	is[1] = (double)info.height;
+	double imgAspect = is[0]/is[1];
+	double cropAspect = cs.aspectRatio[0] / cs.aspectRatio[1];
 
 	if (cropAspect > imgAspect) {
-		s[0] = 1.0f;
-		s[1] = imgAspect / cropAspect;
+		s[0] = (double)cs.scale;
+		s[1] = (imgAspect / cropAspect) * (double)cs.scale;;
 	} else {
-		s[0] = cropAspect /imgAspect;
-		s[1] = 1.0f;
+		s[0] = (cropAspect /imgAspect) * (double)cs.scale;
+		s[1] = (double)cs.scale;
 	}
+}
+
+void CController::applyCropping(const TImageInfo& info, const TCropState& cs, int32_t pos[2], int32_t size[2]) const
+{
+	double is[2];
+	is[0] = (double)info.width;
+	is[1] = (double)info.height;
+	double s[2],sp[2];
+	getCropSizeNC(info, cs, s);
 
 	for (int i=0; i<2; i++) {
-		s[i] *= cs.scale;
 		sp[i] = s[i] * is[i];
-		size[i] = (int32_t)std::roundf(sp[i]);
-		pos[i] = (int32_t)std::roundf((cs.posCenter[i] - 0.5f * s[i]) * is[i]);
+		size[i] = (int32_t)std::round(sp[i]);
+		pos[i] = (int32_t)std::round((cs.posCenter[i] - 0.5f * s[i]) * is[i]);
 		//util::info("XXX %d %d %d",i,size[i],pos[i]);
 	}
 }
@@ -292,12 +299,31 @@ void CController::imageToWin(const CImageEntity& e, const double imgPos[2], doub
 	NCtoWin(nc, winPos);
 }
 
+void CController::imageToCropNC(const CImageEntity& e, const double imgPos[2], double cropPosNC[2]) const
+{
+	double s[2];
+	double o[2];
+	bool enabled;
+	const TCropState& cs = getCropState(e, enabled);
+	getCropSizeNC(e.image.getInfo(), cs, s);
+	o[0] = cs.posCenter[0] - 0.5 * s[0];
+	o[1] = cs.posCenter[1] - 0.5 * s[1];
+	cropPosNC[0] = (imgPos[0] - o[0])/s[0];
+	cropPosNC[1] = (imgPos[1] - o[1])/s[1];
+}
+
+void CController::cropNCToImage(const CImageEntity& e, const double cropPosNC[2], double imgPos[2]) const
+{
+}
+
 void CController::doDragCrop(double winPos[2])
 {
 	const CImageEntity& e = getCurrentInternal();
 	double imgPos[2];
+	double cropPos[2];
 	winToImage(e, winPos, imgPos);
-	util::info("XXX %f %f", imgPos[0], imgPos[1]);
+	imageToCropNC(e, imgPos, cropPos);
+	util::info("XXX %f %f %f %f", imgPos[0], imgPos[1], cropPos[0], cropPos[1]);
 }
 
 void CController::addFile(const char *name)

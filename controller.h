@@ -92,6 +92,10 @@ class CController {
 		void winToImage(const CImageEntity& e, const double winPos[2], double imgPos[2]) const;
 		void imageToWin(const CImageEntity& e, const double imgPos[2], double winPos[2]) const;
 
+		void getCropSizeNC(const TImageInfo& info, const TCropState& cs, double s[2]) const;
+		void imageToCropNC(const CImageEntity& e, const double imgPos[2], double cropPosNC[2]) const;
+		void cropNCToImage(const CImageEntity& e, const double cropPosNC[2], double imgPos[2]) const;
+
 	public:
 		CController(CCodecs& c, const CCodecSettings& ds, const CCodecSettings& es);
 		~CController();
