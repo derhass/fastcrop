@@ -57,6 +57,7 @@ static bool decode(const char *filename, CImage& img, const CCodecSettings& cfg)
 	struct fc_error_mgr jerr;
 	jpeg_saved_marker_ptr marker;
 	FILE* infile = NULL;
+	unsigned char *scanline = NULL;
 
 	if (filename) {
 		infile = util::fopen_wrapper(filename, "rb");
@@ -74,6 +75,9 @@ static bool decode(const char *filename, CImage& img, const CCodecSettings& cfg)
 		jpeg_destroy_decompress(&cinfo);
 		if (infile) {
 			fclose(infile);
+		}
+		if (scanline) {
+			free(scanline);
 		}
 		return false;
 	}
@@ -97,20 +101,107 @@ static bool decode(const char *filename, CImage& img, const CCodecSettings& cfg)
 		}
 	}
 
-	// TODO: cfg.autoRotate
+	uint16_t orientation = 1;
+	if (cfg.autoRotate && haveExif) {
+		orientation = img.getExif().orientation;
+	}
+	if (orientation < 1 || orientation > 8) {
+		orientation = 1;
+	}
 
-	if (img.create(TImageInfo((size_t)cinfo.image_width, (size_t)cinfo.image_height, (size_t)cinfo.num_components, 1))) {
+	TImageInfo info;
+	if (orientation > 4) {
+		info.width = (size_t)cinfo.image_height;
+		info.height = (size_t)cinfo.image_width;
+	} else {
+		info.width = (size_t)cinfo.image_width;
+		info.height = (size_t)cinfo.image_height;
+	}
+	info.channels = (size_t)cinfo.num_components;
+	info.bytesPerChannel = 1;
+
+	if (img.create(info)) {
 		unsigned char *data = (unsigned char*)img.getData();
-		size_t offset = (size_t)cinfo.image_width *  (size_t)cinfo.num_components;
 		if (data) {
+			size_t offset = (size_t)cinfo.image_width *  (size_t)cinfo.num_components;
 			jpeg_start_decompress(&cinfo);
-			while (cinfo.output_scanline < cinfo.output_height) {
-				JSAMPROW line = data + offset * (size_t)cinfo.output_scanline;
-				jpeg_read_scanlines(&cinfo, &line, 1);
+			if (orientation <= 1) {
+				while (cinfo.output_scanline < cinfo.output_height) {
+					JSAMPROW line = data + offset * (size_t)cinfo.output_scanline;
+					jpeg_read_scanlines(&cinfo, &line, 1);
+				}
+				success = true;
+			} else {
+				scanline = (unsigned char*)malloc(offset);
+				if (scanline) {
+					unsigned char *pos;
+					ptrdiff_t pixel_offset;
+					ptrdiff_t row_offset;
+					ptrdiff_t w = (ptrdiff_t)cinfo.image_width;
+					ptrdiff_t n = (ptrdiff_t)cinfo.num_components;
+					switch(orientation) {
+						case 2:
+							row_offset = (ptrdiff_t)info.width * n;
+							pos = data + row_offset- n;
+							pixel_offset = -n;
+							break;
+						case 3:
+							row_offset = (ptrdiff_t)info.width * n;
+							pos = data + (ptrdiff_t)info.height * row_offset - n;
+							row_offset = -row_offset;
+							pixel_offset = -n;
+							break;
+						case 4:
+							row_offset = (ptrdiff_t)info.width * n;
+							pos = data + (ptrdiff_t)(info.height-1) * row_offset;
+							row_offset = -row_offset;
+							pixel_offset = n;
+							break;
+						case 5:
+							pixel_offset = (ptrdiff_t)info.width * n;
+							pos = data + (ptrdiff_t)info.height * pixel_offset - n;
+							row_offset = -n;
+							pixel_offset = -pixel_offset;
+							break;
+						case 6:
+							pixel_offset = (ptrdiff_t)info.width * n;
+							row_offset = -n;
+							pos = data + (ptrdiff_t)(info.width-1) * n;
+							break;
+						case 7:
+							pos = data;
+							pixel_offset = (ptrdiff_t)info.width * n;
+							row_offset = n;
+							break;
+						case 8:
+							pixel_offset = (ptrdiff_t)info.width * n;
+							pos = data + pixel_offset * (ptrdiff_t)(info.height-1);
+							pixel_offset = - pixel_offset;
+							row_offset = n;
+							break;
+						default:
+							pos = data;
+							pixel_offset = n;
+							row_offset = (ptrdiff_t)offset;
+					}
+					JSAMPROW line = scanline;
+					while (cinfo.output_scanline < cinfo.output_height) {
+						ptrdiff_t x,c;
+						jpeg_read_scanlines(&cinfo, &line, 1);
+						for (x=0; x<w; x++) {
+							for (c=0; c<n; c++) {
+								pos[x*pixel_offset+c] = scanline[x*n+c];
+							}
+						}
+						pos += row_offset;
+
+					}
+					free(scanline);
+					success = true;
+				}
 			}
 			jpeg_finish_decompress(&cinfo);
 			img.getExif().parsed = haveExif;
-			success = true;
 		}
 	}
 	fclose(infile);
