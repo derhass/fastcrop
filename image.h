@@ -19,7 +19,7 @@ struct TImageInfo {
 		bytesPerChannel(0)
 	{}
 
-	TImageInfo(unsigned w, unsigned h, unsigned c=3, unsigned bpc=1) noexcept :
+	TImageInfo(size_t w, size_t h, size_t c=3, size_t bpc=1) noexcept :
 		width(w),
 		height(h),
 		channels(c),
