@@ -2,7 +2,7 @@
 #define FASTCROP_IMAGE_H
 
 #include "exif.h"
-#include <unistd.h>
+//#include <unistd.h>
 
 const size_t maxImageSize = 1*1024U*1024U*1024U;
 

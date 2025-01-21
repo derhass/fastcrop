@@ -1,7 +1,7 @@
 #ifndef FASTCROP_CODEC_H
 #define FASTCROP_CODEC_H
 
-#include <unistd.h>
+//#include <unistd.h>
 #include <vector>
 
 class CImage; // forward image.h
