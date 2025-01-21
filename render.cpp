@@ -194,7 +194,7 @@ void CRenderer::prepareUBOs(const CImageEntity& e, const CController& ctrl)
 		if (croppingEnabled) {
 			const TImageInfo& info = e.image.getInfo();
 			ctrl.applyCropping(info, cs, uboCropState.cropPos, uboCropState.cropSize);
-			uboCropState.cropPos[1] = info.height - uboCropState.cropPos[1] -  uboCropState.cropSize[1];
+			uboCropState.cropPos[1] = (int32_t)info.height - uboCropState.cropPos[1] -  uboCropState.cropSize[1];
 		} else {
 			uboCropState.cropPos[0] = 0;
 			uboCropState.cropPos[1] = 0;
