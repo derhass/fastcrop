@@ -8,7 +8,7 @@
 #include <vector>
 
 class CCodecs; // forward codec.h
-class CCodecSettings; // forward codec.h
+struct CCodecSettings; // forward codec.h
 
 struct TWindowState {
 	int dims[2];

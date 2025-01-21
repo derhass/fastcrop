@@ -4,7 +4,7 @@
 #include <glad/gl.h>
 #include <stdint.h>
 
-class CImageEntity; // forward controller.h
+struct CImageEntity; // forward controller.h
 class CController; // forward controller.h
 
 struct TUBOWindowState {
