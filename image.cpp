@@ -294,3 +294,47 @@ bool CImage::flipV() noexcept
 	}
 	return true;
 }
+
+bool CImage::cropTo(CImage& dst, const int32_t pos[2], const int32_t size[2]) const noexcept
+{
+	if (size[0] < 1 || size[1] < 1) {
+		dst.reset();
+		return false;
+	}
+
+	size_t s[2];
+	size_t os[2];
+	size_t ps[2];
+	size_t pd[2];
+	s[0] = (size_t)size[0];
+	s[1] = (size_t)size[1];
+
+	if (!dst.allocate(TImageInfo(s[0], s[1], info.channels, info.bytesPerChannel))) {
+		return false;
+	}
+
+	for (int i = 0; i < 2; i++) {
+		if (pos[i] < 0) {
+			if (pos[i] + size[i] <= 0) {
+				ps[i] = 0;
+				pd[i] = 0;
+				os[i] = 0;
+			} else {
+				os[i] = (size_t)(pos[i] + size[i]);
+				ps[i] = s[i] - os[i];
+				pd[i] = (size_t)pos[i]
+			}
+		}
+	}
+
+	const TImageInfo& info = dst.getInfo();
+	for (size_t y = 0; y < info.height; y++) {
+		int32_t sy = y + pos[2];
+
+		for (size_t x = 0; x < info.width; x++) {
+			int32_t
+
+		}
+	}
+	
+}
