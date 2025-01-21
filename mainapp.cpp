@@ -306,6 +306,26 @@ static void callback_Keyboard(GLFWwindow *win, int key, int scancode, int action
 				case GLFW_KEY_ESCAPE:
 					glfwSetWindowShouldClose(win, 1);
 					break;
+				case GLFW_KEY_1:
+					app->controller.setCropAspect(1.0f, 1.0f);
+					app->renderer.invalidateCropState();
+					break;
+				case GLFW_KEY_2:
+					app->controller.setCropAspect(2.0f, 3.0f);
+					app->renderer.invalidateCropState();
+					break;
+				case GLFW_KEY_3:
+					app->controller.setCropAspect(3.0f, 2.0f);
+					app->renderer.invalidateCropState();
+					break;
+				case GLFW_KEY_8:
+					app->controller.setCropAspect(16.0f, 10.0f);
+					app->renderer.invalidateCropState();
+					break;
+				case GLFW_KEY_9:
+					app->controller.setCropAspect(16.0f, 9.0f);
+					app->renderer.invalidateCropState();
+					break;
 				case GLFW_KEY_LEFT_CONTROL:
 				case GLFW_KEY_RIGHT_CONTROL:
 					app->modifiers |= GLFW_MOD_CONTROL;

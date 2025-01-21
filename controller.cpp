@@ -438,6 +438,19 @@ void CController::setCropScale(float factor)
 		clampCrop(e, cs);
 	}
 }
+
+void CController::setCropAspect(float a, float b)
+{
+	CImageEntity& e = getCurrentInternal();
+	bool enabled;
+	TCropState& cs = getCropStateInternal(e, enabled);
+	if (enabled) {
+		cs.aspectRatio[0] = a;
+		cs.aspectRatio[1] = b;
+		clampCrop(e, cs);
+	}
+}
+
 void CController::addFile(const char *name)
 {
 	CImageEntity *e = new CImageEntity();

@@ -132,6 +132,7 @@ class CController {
 
 		void adjustCropScale(float factor);
 		void setCropScale(float factor);
+		void setCropAspect(float a, float b);
 };
 
 #endif /* !FASTCROP_CONTROLLER_H*/
