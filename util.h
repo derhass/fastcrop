@@ -166,6 +166,10 @@ extern GLsizei roundNextMultiple(GLsizei value, GLsizei base);
 /* get file extension, points into filename */
 extern const char *getExt(const char *filename);
 
+#ifdef WIN32
+#define strcasecmp(a,b) _stricmp((a),(b))
+#endif
+
 /****************************************************************************
  * WINDOWS WIDE STRING <-> UTF8                                             *
  ****************************************************************************/
