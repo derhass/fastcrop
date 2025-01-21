@@ -215,7 +215,7 @@ bool CImage::transposeTo(CImage& dst, bool flip) const noexcept
 	}
 	size_t x,y,i;
 	size_t ps = info.channels * info.bytesPerChannel;
-	ssize_t ls = info.width * ps;
+	intptr_t ls = info.width * ps;
 	size_t ss = 0;
 	size_t dls = dst.info.width * ps;
 	if (flip) {
