@@ -342,9 +342,9 @@ void CController::clampCrop(const CImageEntity& e, TCropState& cs)
 	getCropSizeNC(e.image.getInfo(), cs, s);
 	for (int i=0; i<2; i++) {
 		if (cs.posCenter[i] - 0.5 * s[i] < 0.0) {
-			cs.posCenter[i] = 0.5 * s[i];
+			cs.posCenter[i] = (float)( 0.5 * s[i] );
 		} else if (cs.posCenter[i] + 0.5 * s[i] > 1.0) {
-			cs.posCenter[i] = 1.0 - 0.5 * s[i];
+			cs.posCenter[i] = (float) (1.0 - 0.5 * s[i]);
 		}
 	}
 }
@@ -387,8 +387,8 @@ bool CController::doDragCrop(const double winPos[2])
 			winToImage(e, winPos, imgPos);
 			cropNCToImage(e, dragCropNCBegin, dragPos);
 
-			cs.posCenter[0] -= (dragPos[0] - imgPos[0]);
-			cs.posCenter[1] -= (dragPos[1] - imgPos[1]);
+			cs.posCenter[0] -= (float)(dragPos[0] - imgPos[0]);
+			cs.posCenter[1] -= (float)(dragPos[1] - imgPos[1]);
 			clampCrop(e, cs);
 			return true;
 		}
