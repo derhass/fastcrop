@@ -57,7 +57,6 @@ typedef struct {
 
 typedef struct fc_tiff_decoder_s {
 	const uint8_t* data; 
-	uint32_t current_offset;
 	size_t size;
 	uint16_t endian;
 	unsigned int error_status;
@@ -130,7 +129,6 @@ static void
 fc_tiff_decoder_init(fc_tiff_decoder_t* td)
 {
 	td->data = NULL;
-	td->current_offset = 0;
 	td->size = 0;
 	td->error_status = 0;
 	td->img_index = 0;
@@ -237,7 +235,6 @@ fc_tiff_get_data_offset(fc_tiff_decoder_t* td, uint32_t offset, uint8_t *buf, ui
 	}
 
 	if (td->data) {
-		td->current_offset = offset + size;
 		return td->data + offset;
 	}
 	return NULL;
@@ -253,7 +250,6 @@ fc_tiff_shift_offset(fc_tiff_decoder_t* td, uint32_t value)
 	if (td->data) {
 		td->data += value;
 		td->size -= value;
-		td->current_offset = td->size;
 	}
 }
 
