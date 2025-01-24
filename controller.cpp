@@ -457,6 +457,26 @@ bool CController::processImage()
 	CImage cropped;
 	CImage resized;
 	CImageEntity& e = getCurrentInternal();
+	const char *srcName = e.filename.c_str();
+	const char *baseName = cfg.outputDir.empty()?srcName:util::getBasename(srcName);
+	const char *ext = util::getExt(baseName);
+	std::string filename;
+	if (!srcName || !baseName) {
+		util::warn("no valid file name");
+		return false;
+	}
+	if (ext == baseName) {
+		filename = baseName;
+	} else {
+		filename = std::string(baseName, ext - baseName - 1);
+	}
+
+	if (!cfg.outputDir.empty()) {
+		filename = cfg.outputDir + "/" + filename;
+	}
+	filename = filename + "_fc." + cfg.outputType;
+	util::info("processing '%s' to '%s'", srcName, filename.c_str());
+
 	bool enabled;
 	TCropState& cs = getCropStateInternal(e, enabled);
 	img = &e.image;
@@ -465,20 +485,23 @@ bool CController::processImage()
 		const TImageInfo& info = img->getInfo();
 		applyCropping(info, cs, pos, size);
 		pos[1] = (int32_t)info.height - size[1] - pos[1];
+		util::info("  cropping to %d,%d %dx%d", pos[0],pos[1],size[0],size[1]);
 		if (!img->cropTo(cropped, pos, size)) {
-			util::warn("failed to crop image");
+			util::warn("failed to crop image '%s' to %d,%d %dx%d", srcName, pos[0],pos[1],size[0],size[1]);
 			return false;
 		}
 		img = &cropped;
 	}
 
 	if (!img->resizeToLimits(resized, cfg.maxSize, cfg.maxWidth, cfg.maxHeight, cfg.minSize, cfg.minWidth, cfg.minHeight)) {
-		util::warn("failed to resize");
+		util::warn("failed to resize image '%s'", srcName);
 		return false;
 	}
 	img = &resized;
+	cropped.reset();
+	util::info("  resized to %ux%u", (unsigned)img->getInfo().width, (unsigned)img->getInfo().height);
 
-	const char *fname = "out.png"; // XXXXXXXXXXXXXXXXXXX XXX
+	const char *fname = filename.c_str();
 	if (!codecs.encode(fname, *img, encodeSettings)) {
 		util::warn("failed to save image as %s", fname);
 		return false;
@@ -491,4 +514,35 @@ void CController::addFile(const char *name)
 	CImageEntity *e = new CImageEntity();
 	e->filename = std::string(name);
 	entities.push_back(e);
+}
+
+void CController::switchTo(size_t idx)
+{
+	size_t cnt = entities.size();
+	if (cnt < 1) {
+		currentEntity = 0;
+		return;
+	}
+	if (idx >= cnt) {
+		currentEntity = cnt - 1;
+	} else {
+		currentEntity = idx;
+	}
+}
+
+void CController::switchDelta(int delta)
+{
+	size_t diff, idx=0;
+	if (delta < 0) {
+		diff = (size_t)-delta;
+		if  (diff >= currentEntity) {
+			idx = 0;
+		} else {
+			idx = currentEntity - diff;
+		}
+	} else {
+		diff = (size_t) delta;
+		idx = currentEntity + diff;
+	}
+	switchTo(idx);
 }

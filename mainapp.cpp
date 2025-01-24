@@ -341,6 +341,18 @@ static void callback_Keyboard(GLFWwindow *win, int key, int scancode, int action
 				case GLFW_KEY_ENTER:
 					app->controller.processImage();
 					break;
+				case GLFW_KEY_LEFT:
+				case GLFW_KEY_BACKSPACE:
+					app->controller.switchDelta(-1);
+					app->renderer.invalidateCropState();
+					app->renderer.invalidateImageState();
+					break;
+				case GLFW_KEY_RIGHT:
+				case GLFW_KEY_SPACE:
+					app->controller.switchDelta(1);
+					app->renderer.invalidateCropState();
+					app->renderer.invalidateImageState();
+					break;
 			}
 		} else if (action == GLFW_RELEASE) {
 			switch(key) {
@@ -755,7 +767,7 @@ void parseCommandlineArgs(AppConfig& cfg, MainApp& app, int argc, char**argv)
 				unhandled = true;
 			}
 			if (unhandled) {
-				// TODO: add as file/dir
+				app.controller.addFile(argv[i]);
 			}
 		}
 	}
@@ -789,9 +801,6 @@ int REALMAIN (int argc, char **argv)
 	app.codecs.registerCodec(codecSTBImageWrite);
 
 	parseCommandlineArgs(cfg, app, argc, argv);
-
-	/// TODO XXX XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXx
-	app.controller.addFile("test.jpg");
 
 	if (initMainApp(&app, cfg)) {
 #ifdef WITH_IMGUI

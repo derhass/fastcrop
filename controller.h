@@ -69,14 +69,20 @@ struct TConfig {
 	size_t minSize;
 	size_t minWidth;
 	size_t minHeight;
+	std::string outputDir;
+	std::string outputType;
+	std::string postprocessCommand;
 
 	TConfig() :
-		maxSize(1440),
+		maxSize(1080),
 		maxWidth(0),
 		maxHeight(0),
 		minSize(0),
 		minWidth(0),
-		minHeight(0)
+		minHeight(0),
+		outputDir("/home/mh/tmp/DONTBACKUP/photos-staging"),
+		outputType("png"),
+		postprocessCommand()
 	{}
 };
 
@@ -147,6 +153,8 @@ class CController {
 		void setZoom(float factor, bool relativeToPixels = false);
 
 		void addFile(const char *name);
+		void switchTo(size_t idx);
+		void switchDelta(int delta);
 
 		bool beginDragCrop(const double winPos[2]);
 		bool doDragCrop(const double winPos[2]);

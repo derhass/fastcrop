@@ -230,7 +230,7 @@ bool CImage::resizeToLimits(CImage& dst, size_t maxSize, size_t maxWidth, size_t
 	}
 	if (maxSize && s[1] > maxSize) {
 		s[1] = maxSize;
-		s[0] = (size_t)std::round((double)s[0] * aspect);
+		s[0] = (size_t)std::round((double)s[1] * aspect);
 	}
 	if (maxWidth && s[0] > maxWidth) {
 		s[0] = maxWidth;
@@ -238,7 +238,7 @@ bool CImage::resizeToLimits(CImage& dst, size_t maxSize, size_t maxWidth, size_t
 	}
 	if (maxHeight && s[1] > maxHeight) {
 		s[1] = maxHeight;
-		s[0] = (size_t)std::round((double)s[0] * aspect);
+		s[0] = (size_t)std::round((double)s[1] * aspect);
 	}
 
 	if (s[0] == info.width && s[1] == info.height) {

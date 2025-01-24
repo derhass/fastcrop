@@ -485,6 +485,33 @@ extern const char *getExt(const char *filename)
 	return filename;
 }
 
+/* get base name of file without path, points into filename) */
+extern const char *getBasename(const char *filename)
+{
+	if (!filename) {
+		return NULL;
+	}
+	const char *slash = strrchr(filename, '/');
+#ifdef WIN32
+	const char *backslash = strrchr(filename, '\\');
+	if (slash && backslash) {
+		if ((slash - filename) > (backslash - filename)) {
+			return slash + 1;
+		}
+		return backslash + 1;
+	} else if (slash) {
+		return slash + 1;
+	} else if (backslash) {
+		return backslash + 1;
+	}
+#else 
+	if (slash) {
+		return slash + 1;
+	}
+#endif
+	return filename;
+}
+
 #ifdef WIN32
 /****************************************************************************
  * WINDOWS WIDE STRING <-> UTF8                                             *
