@@ -410,11 +410,19 @@ static void callback_mouse_button(GLFWwindow* win, int button, int action, int m
 				if (!(mods & baseMods)) {
 					if (!app->controller.endDragCrop()) {
 						// normal click
+						app->controller.switchDelta(1);
+						app->renderer.invalidateCropState();
+						app->renderer.invalidateImageState();
 					}
 				}
 
+			} else if (button == GLFW_MOUSE_BUTTON_RIGHT ) {
+				if (!(mods & baseMods)) {
+					app->controller.switchDelta(-1);
+					app->renderer.invalidateCropState();
+					app->renderer.invalidateImageState();
+				}
 			}
-
 		}
 	}
 }
