@@ -524,10 +524,25 @@ void CController::switchTo(size_t idx)
 		return;
 	}
 	if (idx >= cnt) {
-		currentEntity = cnt - 1;
-	} else {
-		currentEntity = idx;
+		idx = cnt - 1;
 	}
+	if (currentEntity == idx) {
+		return;
+	}
+  	CImageEntity& e = getCurrentInternal();
+	if (&e != &dummy) {
+		if (e.flags & FLAG_ENTITY_GLIMAGE) {
+			e.glImage.drop();
+			e.flags &= ~FLAG_ENTITY_GLIMAGE;
+		}
+		// TODO: for now, also unload it, in the future, use manager thread 
+		if (e.flags & FLAG_ENTITY_IMAGE) {
+			e.image.reset();
+			e.flags &= ~FLAG_ENTITY_IMAGE;
+		}
+	}
+
+	currentEntity = idx;
 }
 
 void CController::switchDelta(int delta)
