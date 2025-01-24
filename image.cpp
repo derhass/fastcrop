@@ -4,6 +4,7 @@
 #include <string.h>
 #include <stdint.h>
 
+#include <cmath>
 #include <utility>
 
 #define STB_IMAGE_RESIZE_IMPLEMENTATION
@@ -195,6 +196,57 @@ bool CImage::resizeTo(CImage& dst, size_t w, size_t h) const noexcept
 	return true;
 }
 
+bool CImage::resizeToLimits(CImage& dst, size_t maxSize, size_t maxWidth, size_t maxHeight, size_t minSize, size_t minWidth, size_t minHeight) const noexcept
+{
+	if (!hasData()) {
+		return false;
+	}
+	double aspect = (double)info.width / (double)info.height;
+	size_t s[2];
+	s[0] = info.width;
+	s[1] = info.height;
+
+
+	if (minSize && s[0] < minSize) { 
+		s[0] = minSize;
+		s[1] = (size_t)std::round((double)s[0] / aspect);
+	}
+	if (minSize && s[1] < minSize) { 
+		s[1] = minSize;
+		s[0] = (size_t)std::round((double)s[1] * aspect);
+	}
+	if (minWidth && s[0] < minWidth) {
+		s[0] = minWidth;
+		s[1] = (size_t)std::round((double)s[0] / aspect);
+	}
+	if (minHeight && s[1] < minSize) { 
+		s[1] = minHeight;
+		s[0] = (size_t)std::round((double)s[1] * aspect);
+	}
+
+	if (maxSize && s[0] > maxSize) {
+		s[0] = maxSize;
+		s[1] = (size_t)std::round((double)s[0] / aspect);
+	}
+	if (maxSize && s[1] > maxSize) {
+		s[1] = maxSize;
+		s[0] = (size_t)std::round((double)s[0] * aspect);
+	}
+	if (maxWidth && s[0] > maxWidth) {
+		s[0] = maxWidth;
+		s[1] = (size_t)std::round((double)s[0] / aspect);
+	}
+	if (maxHeight && s[1] > maxHeight) {
+		s[1] = maxHeight;
+		s[0] = (size_t)std::round((double)s[0] * aspect);
+	}
+
+	if (s[0] == info.width && s[1] == info.height) {
+		dst = *this;
+	}
+	return resizeTo(dst, s[0], s[1]);
+}
+
 bool CImage::resize(size_t w, size_t h) noexcept
 {
 	CImage dst;
@@ -302,39 +354,35 @@ bool CImage::cropTo(CImage& dst, const int32_t pos[2], const int32_t size[2]) co
 		return false;
 	}
 
-	size_t s[2];
-	size_t os[2];
-	size_t ps[2];
-	size_t pd[2];
-	s[0] = (size_t)size[0];
-	s[1] = (size_t)size[1];
-
-	if (!dst.allocate(TImageInfo(s[0], s[1], info.channels, info.bytesPerChannel))) {
+	if (!dst.allocate(TImageInfo((size_t)size[0], (size_t)size[1], info.channels, info.bytesPerChannel))) {
 		return false;
 	}
 
-	for (int i = 0; i < 2; i++) {
-		if (pos[i] < 0) {
-			if (pos[i] + size[i] <= 0) {
-				ps[i] = 0;
-				pd[i] = 0;
-				os[i] = 0;
+	int32_t w = (int32_t)info.width;
+	int32_t h = (int32_t)info.height;
+	int32_t ps = (int32_t)(info.channels * info.bytesPerChannel);
+	int32_t i;
+	uint8_t *data = (uint8_t*)dst.getData();
+	const uint8_t* sdata = (const uint8_t*)getData();
+	if (!sdata || !data) {
+		return false;
+	}
+
+	for (int32_t y = 0; y < size[1]; y++) {
+		int32_t sy = y + pos[1];
+		for (int32_t x = 0; x < size[0]; x++) {
+			int32_t sx = x + pos[0];
+			if (sx >= 0 && sx < w && sy >= 0 && sy < h) {
+				for (i=0; i<ps; i++) {
+					data[x*ps+i] = sdata[(sy * w + sx)*ps + i];
+				}
 			} else {
-				os[i] = (size_t)(pos[i] + size[i]);
-				ps[i] = s[i] - os[i];
-				pd[i] = (size_t)pos[i]
+				for (i=0; i<ps; i++) {
+					data[x*ps+i] = 0;
+				}
 			}
 		}
+		data += size[0] * ps;
 	}
-
-	const TImageInfo& info = dst.getInfo();
-	for (size_t y = 0; y < info.height; y++) {
-		int32_t sy = y + pos[2];
-
-		for (size_t x = 0; x < info.width; x++) {
-			int32_t
-
-		}
-	}
-	
+	return true;
 }

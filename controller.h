@@ -62,12 +62,31 @@ struct CImageEntity {
 	{}
 };
 
+struct TConfig {
+	size_t maxSize;
+	size_t maxWidth;
+	size_t maxHeight;
+	size_t minSize;
+	size_t minWidth;
+	size_t minHeight;
+
+	TConfig() :
+		maxSize(1440),
+		maxWidth(0),
+		maxHeight(0),
+		minSize(0),
+		minWidth(0),
+		minHeight(0)
+	{}
+};
+
 
 class CController {
 	private:
 		CCodecs& codecs;
 		const CCodecSettings& decodeSettings;
 		const CCodecSettings& encodeSettings;
+		TConfig cfg;
 		TWindowState windowState;
 
 		std::vector<CImageEntity*> entities;
@@ -114,6 +133,9 @@ class CController {
 		void setWindowSize(int w, int h) noexcept;
 		const TWindowState& getWindowState() const noexcept;
 
+		TConfig& getConfig() noexcept {return cfg;}
+		const TConfig& getConfig() const noexcept {return cfg;}
+
 		const CImageEntity& getCurrent();
 		const TDisplayState& getDisplayState(const CImageEntity& e) const;
 		const TCropState& getCropState(const CImageEntity& e, bool& croppingEnabled) const;
@@ -133,6 +155,8 @@ class CController {
 		void adjustCropScale(float factor);
 		void setCropScale(float factor);
 		void setCropAspect(float a, float b);
+
+		bool processImage();
 };
 
 #endif /* !FASTCROP_CONTROLLER_H*/

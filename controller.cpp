@@ -451,6 +451,41 @@ void CController::setCropAspect(float a, float b)
 	}
 }
 
+bool CController::processImage()
+{
+	CImage *img;
+	CImage cropped;
+	CImage resized;
+	CImageEntity& e = getCurrentInternal();
+	bool enabled;
+	TCropState& cs = getCropStateInternal(e, enabled);
+	img = &e.image;
+	if (enabled) {
+		int32_t pos[2], size[2];
+		const TImageInfo& info = img->getInfo();
+		applyCropping(info, cs, pos, size);
+		pos[1] = (int32_t)info.height - size[1] - pos[1];
+		if (!img->cropTo(cropped, pos, size)) {
+			util::warn("failed to crop image");
+			return false;
+		}
+		img = &cropped;
+	}
+
+	if (!img->resizeToLimits(resized, cfg.maxSize, cfg.maxWidth, cfg.maxHeight, cfg.minSize, cfg.minWidth, cfg.minHeight)) {
+		util::warn("failed to resize");
+		return false;
+	}
+	img = &resized;
+
+	const char *fname = "out.png"; // XXXXXXXXXXXXXXXXXXX XXX
+	if (!codecs.encode(fname, *img, encodeSettings)) {
+		util::warn("failed to save image as %s", fname);
+		return false;
+	}
+	return true;
+}
+
 void CController::addFile(const char *name)
 {
 	CImageEntity *e = new CImageEntity();

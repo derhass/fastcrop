@@ -94,6 +94,7 @@ class CImage {
 		bool makeChecker(const TImageInfo& newInfo) noexcept;
 
 		bool resizeTo(CImage& dst, size_t w, size_t h) const noexcept;
+		bool resizeToLimits(CImage& dst, size_t maxSize, size_t maxWidth, size_t maxHeight, size_t minSize, size_t minWidth, size_t minHeight) const noexcept;
 		bool resize(size_t w, size_t h) noexcept;
 
 		bool transposeTo(CImage& dst, bool flip) const noexcept;
@@ -101,6 +102,8 @@ class CImage {
 
 		bool flipH() noexcept;
 		bool flipV() noexcept;
+
+		bool cropTo(CImage& dst, const int32_t pos[2], const int32_t size[2]) const noexcept;
 };
 
 #endif /* !FASTCROP_IMAGE_H */

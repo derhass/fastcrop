@@ -338,6 +338,9 @@ static void callback_Keyboard(GLFWwindow *win, int key, int scancode, int action
 				case GLFW_KEY_RIGHT_ALT:
 					app->modifiers |= GLFW_MOD_ALT;
 					break;
+				case GLFW_KEY_ENTER:
+					app->controller.processImage();
+					break;
 			}
 		} else if (action == GLFW_RELEASE) {
 			switch(key) {
