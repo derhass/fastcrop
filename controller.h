@@ -74,13 +74,13 @@ struct TConfig {
 	std::string postprocessCommand;
 
 	TConfig() :
-		maxSize(1080),
+		maxSize(1440),
 		maxWidth(0),
 		maxHeight(0),
 		minSize(0),
 		minWidth(0),
 		minHeight(0),
-		outputDir("/home/mh/tmp/DONTBACKUP/photos-staging"),
+		outputDir("/home/mh/tmp/DONTBACKUP/photos-staging/sel/c"),
 		outputType("png"),
 		postprocessCommand()
 	{}
