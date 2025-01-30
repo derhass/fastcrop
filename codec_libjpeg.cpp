@@ -45,6 +45,7 @@ struct fc_error_mgr {
 void my_error_exit(j_common_ptr cinfo)
 {
   struct fc_error_mgr* err = (struct fc_error_mgr*)cinfo->err;
+  err->pub.output_message(cinfo);
   longjmp(err->setjmp_buffer, 1);
 }
 static bool decode(const char *filename, CImage& img, const CCodecSettings& cfg)
@@ -72,6 +73,11 @@ static bool decode(const char *filename, CImage& img, const CCodecSettings& cfg)
 	cinfo.err = jpeg_std_error(&jerr.pub);
 	jerr.pub.error_exit = my_error_exit;
 	if (setjmp(jerr.setjmp_buffer)) {
+		if (success) {
+			util::warn("libjpeg decode error [ignored]");
+		} else {
+			util::warn("libjpeg decode failed");
+		}
 		jpeg_destroy_decompress(&cinfo);
 		if (infile) {
 			fclose(infile);
@@ -79,7 +85,7 @@ static bool decode(const char *filename, CImage& img, const CCodecSettings& cfg)
 		if (scanline) {
 			free(scanline);
 		}
-		return false;
+		return success;
 	}
 	
 	jpeg_create_decompress(&cinfo);
@@ -197,13 +203,15 @@ static bool decode(const char *filename, CImage& img, const CCodecSettings& cfg)
 
 					}
 					free(scanline);
+					scanline = NULL;
 					success = true;
 				}
 			}
-			jpeg_finish_decompress(&cinfo);
 			img.getExif().parsed = haveExif;
+			jpeg_finish_decompress(&cinfo);
 		}
 	}
+	jpeg_destroy_decompress(&cinfo);
 	fclose(infile);
 	return success;
 }
@@ -272,6 +280,7 @@ static bool encode(const char *filename, const CImage& img, const CCodecSettings
 	cinfo.err = jpeg_std_error(&jerr.pub);
 	jerr.pub.error_exit = my_error_exit;
 	if (setjmp(jerr.setjmp_buffer)) {
+		util::warn("libjpeg encode failed");
 		jpeg_destroy_compress(&cinfo);
 		if (outfile) {
 			fclose(outfile);
