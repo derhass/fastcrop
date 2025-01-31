@@ -74,7 +74,7 @@ struct TConfig {
 	std::string postprocessCommand;
 
 	TConfig() :
-		maxSize(1440),
+		maxSize(1080),
 		maxWidth(0),
 		maxHeight(0),
 		minSize(0),
