@@ -235,6 +235,12 @@ void CController::setZoom(float factor, bool relativeToPixels)
 	e.display.zoom = baseFactor * factor;
 }
 
+void CController::resetDisplayState()
+{
+	CImageEntity& e = getCurrentInternal();
+	e.display = TDisplayState();
+}
+
 void CController::getDisplayTransform(const CImageEntity& e, double scale[2], double offset[2], bool minusOneToOne) const
 {
 	double winAspect = (double)windowState.dims[0] / (double)windowState.dims[1];
@@ -448,6 +454,22 @@ void CController::setCropAspect(float a, float b)
 		cs.aspectRatio[0] = a;
 		cs.aspectRatio[1] = b;
 		clampCrop(e, cs);
+	}
+}
+
+void CController::resetCropState(bool includeAspect)
+{
+	CImageEntity& e = getCurrentInternal();
+	bool enabled;
+	TCropState& cs = getCropStateInternal(e, enabled);
+	(void)enabled;
+	float aspect[2];
+	aspect[0] = cs.aspectRatio[0];
+	aspect[1] = cs.aspectRatio[1];
+	cs = TCropState();
+	if (!includeAspect) {
+		cs.aspectRatio[0] = aspect[0];
+		cs.aspectRatio[1] = aspect[1];
 	}
 }
 

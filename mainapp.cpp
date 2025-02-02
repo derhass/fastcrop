@@ -353,6 +353,12 @@ static void callback_Keyboard(GLFWwindow *win, int key, int scancode, int action
 					app->renderer.invalidateCropState();
 					app->renderer.invalidateImageState();
 					break;
+				case GLFW_KEY_HOME:
+					app->controller.resetCropState(false);
+					app->controller.resetDisplayState();
+					app->renderer.invalidateCropState();
+					app->renderer.invalidateDisplayState();
+					break;
 			}
 		} else if (action == GLFW_RELEASE) {
 			switch(key) {
@@ -432,20 +438,26 @@ static void callback_scroll(GLFWwindow *win, double x, double y)
 {
 	MainApp *app=(MainApp*)glfwGetWindowUserPointer(win);
 	if (isOurInput(app, true)) {
+		double f;
+		if (app->modifiers & GLFW_MOD_SHIFT) {
+			f = pow(2.0, 1.0/16.0);
+		} else {
+			f = sqrt(2.0);
+		}
 		if (y > 0.1) {
 			if (app->modifiers & GLFW_MOD_CONTROL) {
-				app->controller.adjustZoom((float)(y * sqrt(2.0)));
+				app->controller.adjustZoom((float)(y * f));
 				app->renderer.invalidateDisplayState();
-			} else if (!(app->modifiers & baseMods)) {
-				app->controller.adjustCropScale((float)(y * sqrt(2.0)));
+			} else if (!(app->modifiers & baseMods) || (app->modifiers & GLFW_MOD_SHIFT)) {
+				app->controller.adjustCropScale((float)(y * f));
 				app->renderer.invalidateCropState();
 			}
 		} else if ( y < -0.1) {
 			if (app->modifiers & GLFW_MOD_CONTROL) {
-				app->controller.adjustZoom((float)(-1.0 / (sqrt(2.0) * y)));
+				app->controller.adjustZoom((float)(-1.0 / f * y));
 				app->renderer.invalidateDisplayState();
-			} else if (!(app->modifiers & baseMods)) {
-				app->controller.adjustCropScale((float)(-1.0 / (sqrt(2.0) * y)));
+			} else if (!(app->modifiers & baseMods) || (app->modifiers & GLFW_MOD_SHIFT)) {
+				app->controller.adjustCropScale((float)(-1.0 / f * y));
 				app->renderer.invalidateCropState();
 			}
 		}

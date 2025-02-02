@@ -151,6 +151,7 @@ class CController {
 
 		void adjustZoom(float factor);
 		void setZoom(float factor, bool relativeToPixels = false);
+		void resetDisplayState();
 
 		void addFile(const char *name);
 		void switchTo(size_t idx);
@@ -163,6 +164,7 @@ class CController {
 		void adjustCropScale(float factor);
 		void setCropScale(float factor);
 		void setCropAspect(float a, float b);
+		void resetCropState(bool includeAspect);
 
 		bool processImage();
 };
