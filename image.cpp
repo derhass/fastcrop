@@ -277,10 +277,10 @@ static bool resizeSWS(const uint8_t *src, const TImageInfo& info, uint8_t *dst, 
 		return false;
 	}
 	
-	debug("resizeSWS: selected format %d: %u channels, bit depth %u", (int)fmt, (unsigned)info.channels, (unsigned)info.bytesPerChannel*8U);
 
 	int flags = 0;
-
+	flags |= SWS_FULL_CHR_H_INT | SWS_FULL_CHR_H_INP | SWS_ACCURATE_RND | SWS_BITEXACT;
+	//define SWS_ERROR_DIFFUSION
 	switch (ctx.swsMode) {
 		case FC_SWS_FAST_BILINEAR:	flags |= SWS_FAST_BILINEAR; break;
 		case FC_SWS_BILINEAR:		flags |= SWS_BILINEAR; break;
@@ -297,11 +297,25 @@ static bool resizeSWS(const uint8_t *src, const TImageInfo& info, uint8_t *dst, 
 			util::warn("resizeSWS: invalid scaler mode %d", (int)ctx.swsMode);
 			return false;
 	}
+	debug("resizeSWS: selected mode %d, flags: 0x%x, format %d: %u channels, bit depth %u", (int)ctx.swsMode, (unsigned) flags, (int)fmt, (unsigned)info.channels, (unsigned)info.bytesPerChannel*8U);
 	struct SwsContext *swsctx = sws_getContext((int)info.width, (int)info.height, fmt, (int)dstInfo.width, (int)dstInfo.height, fmt, flags, NULL, NULL, NULL);
 	if (!swsctx) {
 		util::warn("resizeSWS: failed to get context");
 		return false;
 	}
+	
+	/*
+	int *inv_table;
+	int srcRange;
+	int *table;
+	int dstRange;
+	int brightness;
+	int contrast;
+	int saturation;
+	if (sws_getColorspaceDetails(swsctx, &inv_table, &srcRange, &table, &dstRange, &brightness, &contrast, &saturation) >= 0) {
+		util::warn("%d %d", srcRange, dstRange);
+	}
+	*/
 
 	bool success = false;
 	const uint8_t* srcData[3];

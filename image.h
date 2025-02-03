@@ -94,7 +94,7 @@ struct TImageResizeCtx {
 
 	TImageResizeCtx() noexcept :
 #ifdef WITH_LIBSWSCALE
-		swsMode(FC_SWS_BICUBIC),
+		swsMode(FC_SWS_SPLINE),
 #endif
 		mode(FC_RESIZE_AUTO)
 	{}
