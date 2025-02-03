@@ -52,6 +52,19 @@ ifeq ($(WITH_LIBJPEG), 1)
     LDFLAGS += $(shell pkg-config --libs libjpeg)
 endif
 
+#check if libswscale is available
+$(shell pkg-config --exists libswscale)
+ifeq ($(.SHELLSTATUS), 0)
+    WITH_LIBSWSCALE=1
+else
+    WITH_LIBSWSCALE=0
+endif
+
+ifeq ($(WITH_LIBSWSCALE), 1)
+    CPPFLAGS += -DWITH_LIBSWSCALE $(shell pkg-config --cflags libswscale)
+    LDFLAGS += $(shell pkg-config --libs libswscale)
+endif
+
 # additional libraries
 LDFLAGS += -lrt -lm
 
@@ -112,6 +125,9 @@ ifeq ($(IMGUI_MISSING), 1)
 endif
 ifneq ($(WITH_LIBJPEG), 1)
 	@echo "WARNING: Build without libjpeg"
+endif
+ifneq ($(WITH_LIBSWSCALE), 1)
+	@echo "WARNING: Build without libswscale"
 endif
 
 # remove all unneeded files

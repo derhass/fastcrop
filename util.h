@@ -25,6 +25,12 @@ extern void info (const char *format, ...);
 /* Print a warning message to stderr, use printf syntax. */
 extern void warn (const char *format, ...);
 
+#ifdef NDEBUG
+#define debug(...) ((void)0)
+#else
+#define debug(...) util::info(__VA_ARGS__)
+#endif
+
 /****************************************************************************
  * GL ERRORS                                                                *
  ****************************************************************************/

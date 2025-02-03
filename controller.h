@@ -167,7 +167,7 @@ class CController {
 		void setCropAspect(float a, float b);
 		void resetCropState(bool includeAspect);
 
-		bool processImage();
+		bool processImage(const char *suffix);
 };
 
 #endif /* !FASTCROP_CONTROLLER_H*/

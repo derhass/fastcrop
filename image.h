@@ -60,11 +60,43 @@ struct TImageInfo {
 	}
 };
 
+typedef enum {
+	FC_RESIZE_AUTO = 0,
+	FC_RESIZE_STB,
+#ifdef WITH_LIBSWSCALE
+	FC_RESIZE_SWSCALE,
+#endif
+	FC_RESIZE_COUNT /* end marker */	
+} TFCResizeMode;
+
+#ifdef WITH_LIBSWSCALE
+typedef enum {
+	FC_SWS_FAST_BILINEAR=0,
+	FC_SWS_BILINEAR,
+	FC_SWS_BICUBIC,
+	FC_SWS_X,
+	FC_SWS_POINT,
+	FC_SWS_AREA,
+	FC_SWS_BICUBLIN,
+	FC_SWS_GAUSS,
+	FC_SWS_SINC,
+	FC_SWS_LANCZOS,
+	FC_SWS_SPLINE,
+	FC_SWS_COUNT /* end marker */
+} TFCSWSMode;
+#endif
+
 struct TImageResizeCtx {
-	unsigned int unused;
+#ifdef WITH_LIBSWSCALE
+	TFCSWSMode swsMode;
+#endif
+	TFCResizeMode mode;
 
 	TImageResizeCtx() noexcept :
-		unused(0)
+#ifdef WITH_LIBSWSCALE
+		swsMode(FC_SWS_BICUBIC),
+#endif
+		mode(FC_RESIZE_AUTO)
 	{}
 };
 

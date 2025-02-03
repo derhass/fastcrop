@@ -233,6 +233,37 @@ static void initGLState(MainApp* app, const AppConfig& cfg)
 }
 
 /****************************************************************************
+ * TEST STUFF                                                               *
+ ****************************************************************************/
+
+static void doTestScaleFilter(MainApp *app)
+{
+	char suffix[16];
+	TConfig& cfg = app->controller.getConfig();
+
+	for (int m = ((int)FC_RESIZE_AUTO)+1;  m < (int)FC_RESIZE_COUNT; m++) {
+		TFCResizeMode mode = (TFCResizeMode)m;
+		cfg.resizeCtx.mode = mode;
+#ifdef WITH_LIBSWSCALE
+		if (mode == FC_RESIZE_SWSCALE) {
+			for (int n = 0; n<(int)FC_SWS_COUNT; n++) {
+				cfg.resizeCtx.swsMode = (TFCSWSMode)n;
+				mysnprintf(suffix, sizeof(suffix), "_fct%d_%d", m, n);
+				app->controller.processImage(suffix);
+			}
+		} else {
+#endif
+			mysnprintf(suffix, sizeof(suffix), "_fct%d", m);
+			app->controller.processImage(suffix);
+#ifdef WITH_LIBSWSCALE
+		}
+#endif
+	}
+
+
+}
+
+/****************************************************************************
  * WINDOW-RELATED CALLBACKS                                                 *
  ****************************************************************************/
 
@@ -339,7 +370,7 @@ static void callback_Keyboard(GLFWwindow *win, int key, int scancode, int action
 					app->modifiers |= GLFW_MOD_ALT;
 					break;
 				case GLFW_KEY_ENTER:
-					app->controller.processImage();
+					app->controller.processImage("_fc");
 					break;
 				case GLFW_KEY_LEFT:
 				case GLFW_KEY_BACKSPACE:
@@ -358,6 +389,11 @@ static void callback_Keyboard(GLFWwindow *win, int key, int scancode, int action
 					app->controller.resetDisplayState();
 					app->renderer.invalidateCropState();
 					app->renderer.invalidateDisplayState();
+					break;
+				case GLFW_KEY_T:
+					if (mods & GLFW_MOD_CONTROL) {
+						doTestScaleFilter(app);
+					}
 					break;
 			}
 		} else if (action == GLFW_RELEASE) {

@@ -473,7 +473,7 @@ void CController::resetCropState(bool includeAspect)
 	}
 }
 
-bool CController::processImage()
+bool CController::processImage(const char *suffix)
 {
 	CImage *img;
 	CImage cropped;
@@ -496,7 +496,7 @@ bool CController::processImage()
 	if (!cfg.outputDir.empty()) {
 		filename = cfg.outputDir + "/" + filename;
 	}
-	filename = filename + "_fc." + cfg.outputType;
+	filename = filename + std::string(suffix) + "." + cfg.outputType;
 	util::info("processing '%s' to '%s'", srcName, filename.c_str());
 
 	bool enabled;

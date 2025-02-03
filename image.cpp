@@ -10,6 +10,14 @@
 #define STB_IMAGE_RESIZE_IMPLEMENTATION
 #include "stb/stb_image_resize2.h"
 
+#ifdef WITH_LIBSWSCALE
+extern "C" {
+#include "libswscale/swscale.h"
+}
+#endif
+
+#include "util.h"
+
 #define GET_PIXEL_OFFSET(i,x,y,c) ((((y)*i.width + (x)) * i.channels + (c)) * i.bytesPerChannel)
 #define GET_PIXEL(i,d,x,y,c) (((unsigned char*)d) + GET_PIXEL_OFFSET(i,x,y,c))
 #define GET_PIXELC(i,d,x,y,c) (((const unsigned char*)d) + GET_PIXEL_OFFSET(i,x,y,c))
@@ -161,12 +169,16 @@ bool CImage::makeChecker(const TImageInfo& newInfo) noexcept
 	return false;
 }
 
-bool CImage::resizeTo(CImage& dst, const TImageResizeCtx& ctx, size_t w, size_t h) const noexcept
+static bool resizeSTB(const unsigned char *src, const TImageInfo& info, unsigned char *dst, const TImageInfo& dstInfo, const TImageResizeCtx& ctx) noexcept
 {
-	if (!hasData()) {
+	(void)ctx;
+
+	if (!src || !dst) {
+		util::warn("resizeSTB: no valid data");
 		return false;
 	}
 	if (info.bytesPerChannel != 1) {
+		util::warn("resizeSTB: unsupported bit depth %u", (unsigned)info.bytesPerChannel*8U);
 		return false;
 	}
 
@@ -185,15 +197,184 @@ bool CImage::resizeTo(CImage& dst, const TImageResizeCtx& ctx, size_t w, size_t 
 			l=STBIR_RGBA;
 			break;
 		default:
+			util::warn("resizeSTB: unsupported channel count %u", (unsigned)info.channels);
 			return false;
 	}
-	if (!dst.allocate(TImageInfo(w,h,info.channels,info.bytesPerChannel))) {
+	stbir_resize_uint8_srgb(src, (int)info.width, (int)info.height, 0,
+				dst, (int)dstInfo.width, (int)dstInfo.height, 0, l);
+	return true;
+}
+
+#ifdef WITH_LIBSWSCALE
+static bool resizeSWS(const uint8_t *src, const TImageInfo& info, uint8_t *dst, const TImageInfo& dstInfo, const TImageResizeCtx& ctx) noexcept
+{
+	enum AVPixelFormat fmt;
+	bool littleEndian;
+	uint16_t data;
+	uint8_t *ptr;
+       
+	if (!src || !dst) {
+		util::warn("resizeSWS: no valid data");
 		return false;
 	}
 
-	stbir_resize_uint8_srgb((const unsigned char*)data, (int)info.width, (int)info.height, 0,
-				(unsigned char*)dst.data, (int)dst.info.width, (int)dst.info.height, 0, l);
-	return true;
+	switch(info.bytesPerChannel) {
+		case 1:
+			switch(info.channels) {
+				case 1:
+					fmt = AV_PIX_FMT_GRAY8;
+					break;
+				case 3:
+					fmt = AV_PIX_FMT_RGB24;
+					break;
+				case 4:
+					fmt = AV_PIX_FMT_RGBA;
+					break;
+				default:
+					fmt = AV_PIX_FMT_NONE;
+			}
+			break;
+		case 2:
+			data = 0x1122;
+			ptr = (uint8_t*)&data;
+			if (ptr[0] == 0x22) {
+				littleEndian = true;
+			} else if (ptr[0] == 0x11) {
+				littleEndian = false;
+			} else {
+				util::warn("resizeSWS: endianness detection failed!");
+				return false;
+			}
+			switch(info.channels) {
+				case 1:
+					fmt = (littleEndian)?AV_PIX_FMT_GRAY16LE : AV_PIX_FMT_GRAY16BE;
+					break;
+				case 3:
+					fmt = (littleEndian)?AV_PIX_FMT_RGB48LE : AV_PIX_FMT_RGB48BE;
+					break;
+				case 4:
+					fmt = (littleEndian)?AV_PIX_FMT_RGBA64LE : AV_PIX_FMT_RGBA64BE;
+					break;
+				default:
+					fmt = AV_PIX_FMT_NONE;
+			}
+			break;
+		default:
+			fmt = AV_PIX_FMT_NONE;
+	}
+
+	if (fmt == AV_PIX_FMT_NONE) {
+		util::warn("resizeSWS: unsupported format: %u channels, bit depth %u", (unsigned)info.channels, (unsigned)info.bytesPerChannel*8U);
+		return false;
+	}
+
+	if (!sws_isSupportedInput(fmt)) {
+		util::warn("resizeSWS: unsupported INPUT format %d: %u channels, bit depth %u", (int)fmt, (unsigned)info.channels, (unsigned)info.bytesPerChannel*8U);
+		return false;
+	}
+	if (!sws_isSupportedOutput(fmt)) {
+		util::warn("resizeSWS: unsupported OUTPUT format %d: %u channels, bit depth %u", (int)fmt, (unsigned)info.channels, (unsigned)info.bytesPerChannel*8U);
+		return false;
+	}
+	
+	debug("resizeSWS: selected format %d: %u channels, bit depth %u", (int)fmt, (unsigned)info.channels, (unsigned)info.bytesPerChannel*8U);
+
+	int flags = 0;
+
+	switch (ctx.swsMode) {
+		case FC_SWS_FAST_BILINEAR:	flags |= SWS_FAST_BILINEAR; break;
+		case FC_SWS_BILINEAR:		flags |= SWS_BILINEAR; break;
+		case FC_SWS_BICUBIC:		flags |= SWS_BICUBIC; break;
+		case FC_SWS_X:			flags |= SWS_X; break;
+		case FC_SWS_POINT:		flags |= SWS_POINT; break;
+		case FC_SWS_AREA:		flags |= SWS_AREA; break;
+		case FC_SWS_BICUBLIN:		flags |= SWS_BICUBLIN; break;
+		case FC_SWS_GAUSS:		flags |= SWS_GAUSS; break;
+		case FC_SWS_SINC:		flags |= SWS_SINC; break;
+		case FC_SWS_LANCZOS:		flags |= SWS_LANCZOS; break;
+		case FC_SWS_SPLINE:		flags |= SWS_SPLINE; break;
+		default:
+			util::warn("resizeSWS: invalid scaler mode %d", (int)ctx.swsMode);
+			return false;
+	}
+	struct SwsContext *swsctx = sws_getContext((int)info.width, (int)info.height, fmt, (int)dstInfo.width, (int)dstInfo.height, fmt, flags, NULL, NULL, NULL);
+	if (!swsctx) {
+		util::warn("resizeSWS: failed to get context");
+		return false;
+	}
+
+	bool success = false;
+	const uint8_t* srcData[3];
+	uint8_t* dstData[3];
+	int srcStride[3];
+	int dstStride[3];
+
+	srcData[0] = src;
+	srcData[1] = NULL;
+	srcData[2] = NULL;
+	srcStride[0] = (int)(info.channels * info.bytesPerChannel * info.width);
+	srcStride[1] = 0;
+	srcStride[2] = 0;
+
+	dstData[0] = dst;
+	dstData[1] = NULL;
+	dstData[2] = NULL;
+	dstStride[0] = (int)(dstInfo.channels * dstInfo.bytesPerChannel * dstInfo.width);
+	dstStride[1] = 0;
+	dstStride[2] = 0;
+
+	int res = sws_scale(swsctx, srcData, srcStride, 0, (int)info.height, dstData, dstStride);
+	if (res == (int)dstInfo.height) {
+		success = true;
+	} else {
+		util::warn("resizeSWS: failed to scale: %d",res);
+	}
+
+	sws_freeContext(swsctx);
+	return success;
+}
+#endif /* WITH_LIBSWSCALE */
+
+bool CImage::resizeTo(CImage& dst, const TImageResizeCtx& ctx, size_t w, size_t h) const noexcept
+{
+	if (!hasData()) {
+		util::warn("resize: no valid data");
+		return false;
+	}
+
+	TFCResizeMode mode = ctx.mode;
+	if (mode == FC_RESIZE_AUTO) {
+#ifdef WITH_LIBSWSCALE
+		mode = FC_RESIZE_SWSCALE;
+#else
+		mode = FC_RESIZE_STB;
+#endif
+	}
+
+	if (!dst.allocate(TImageInfo(w,h,info.channels,info.bytesPerChannel))) {
+		util::warn("resize: failed to allocate output");
+		return false;
+	}
+
+	bool success;
+	switch(mode) {
+		case FC_RESIZE_STB:
+			success = resizeSTB((const unsigned char*)data, info, (unsigned char*)dst.data, dst.info, ctx);
+			break;
+#ifdef WITH_LIBSWSCALE
+		case FC_RESIZE_SWSCALE:
+			success = resizeSWS((const uint8_t*)data, info, (uint8_t*)dst.data, dst.info, ctx);
+			break;
+#endif
+		default:
+			util::warn("resize: invalid mode %u", (unsigned)mode);
+			success = false;
+	}
+	if (!success) {
+		util::warn("resize failed");
+		dst.dropData();
+	}
+	return success;
 }
 
 bool CImage::resizeToLimits(CImage& dst, const TImageResizeCtx& ctx, size_t maxSize, size_t maxWidth, size_t maxHeight, size_t minSize, size_t minWidth, size_t minHeight) const noexcept
