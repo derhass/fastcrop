@@ -52,17 +52,28 @@ ifeq ($(WITH_LIBJPEG), 1)
     LDFLAGS += $(shell pkg-config --libs libjpeg)
 endif
 
-#check if libswscale is available
+#check if libswscale and libavutil are available
 $(shell pkg-config --exists libswscale)
 ifeq ($(.SHELLSTATUS), 0)
     WITH_LIBSWSCALE=1
 else
     WITH_LIBSWSCALE=0
 endif
+$(shell pkg-config --exists libavutil)
+ifeq ($(.SHELLSTATUS), 0)
+    WITH_LIBAVUTIL=1
+else
+    WITH_LIBAVUTIL=0
+    WITH_LIBSWSCALE=0
+endif
 
 ifeq ($(WITH_LIBSWSCALE), 1)
     CPPFLAGS += -DWITH_LIBSWSCALE $(shell pkg-config --cflags libswscale)
     LDFLAGS += $(shell pkg-config --libs libswscale)
+endif
+ifeq ($(WITH_LIBAVUTIL), 1)
+    CPPFLAGS += $(shell pkg-config --cflags libavutil)
+    LDFLAGS += $(shell pkg-config --libs libavutil)
 endif
 
 # additional libraries
@@ -127,7 +138,11 @@ ifneq ($(WITH_LIBJPEG), 1)
 	@echo "WARNING: Build without libjpeg"
 endif
 ifneq ($(WITH_LIBSWSCALE), 1)
+ifneq ($(WITH_LIBAVUTIL), 1)
+	@echo "WARNING: Build without libswscale (libavutil missing)"
+else
 	@echo "WARNING: Build without libswscale"
+endif
 endif
 
 # remove all unneeded files

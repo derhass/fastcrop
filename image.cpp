@@ -13,6 +13,7 @@
 #ifdef WITH_LIBSWSCALE
 extern "C" {
 #include "libswscale/swscale.h"
+#include "libavutil/opt.h"
 }
 #endif
 
@@ -301,6 +302,10 @@ static bool resizeSWS(const uint8_t *src, const TImageInfo& info, uint8_t *dst, 
 	struct SwsContext *swsctx = sws_getContext((int)info.width, (int)info.height, fmt, (int)dstInfo.width, (int)dstInfo.height, fmt, flags, NULL, NULL, NULL);
 	if (!swsctx) {
 		util::warn("resizeSWS: failed to get context");
+		return false;
+	}
+	if (av_opt_set(swsctx,"gamma", "1",AV_OPT_SEARCH_CHILDREN)) {
+		util::warn("resizeSWS: setting gamma failed");
 		return false;
 	}
 	
