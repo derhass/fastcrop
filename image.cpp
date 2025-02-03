@@ -161,7 +161,7 @@ bool CImage::makeChecker(const TImageInfo& newInfo) noexcept
 	return false;
 }
 
-bool CImage::resizeTo(CImage& dst, size_t w, size_t h) const noexcept
+bool CImage::resizeTo(CImage& dst, const TImageResizeCtx& ctx, size_t w, size_t h) const noexcept
 {
 	if (!hasData()) {
 		return false;
@@ -196,7 +196,7 @@ bool CImage::resizeTo(CImage& dst, size_t w, size_t h) const noexcept
 	return true;
 }
 
-bool CImage::resizeToLimits(CImage& dst, size_t maxSize, size_t maxWidth, size_t maxHeight, size_t minSize, size_t minWidth, size_t minHeight) const noexcept
+bool CImage::resizeToLimits(CImage& dst, const TImageResizeCtx& ctx, size_t maxSize, size_t maxWidth, size_t maxHeight, size_t minSize, size_t minWidth, size_t minHeight) const noexcept
 {
 	if (!hasData()) {
 		return false;
@@ -244,13 +244,13 @@ bool CImage::resizeToLimits(CImage& dst, size_t maxSize, size_t maxWidth, size_t
 	if (s[0] == info.width && s[1] == info.height) {
 		dst = *this;
 	}
-	return resizeTo(dst, s[0], s[1]);
+	return resizeTo(dst, ctx, s[0], s[1]);
 }
 
-bool CImage::resize(size_t w, size_t h) noexcept
+bool CImage::resize(const TImageResizeCtx& ctx, size_t w, size_t h) noexcept
 {
 	CImage dst;
-	if (resizeTo(dst, w, h)) {
+	if (resizeTo(dst, ctx, w, h)) {
 		*this = std::move(dst);
 		return true;
 	}

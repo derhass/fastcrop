@@ -515,7 +515,7 @@ bool CController::processImage()
 		img = &cropped;
 	}
 
-	if (!img->resizeToLimits(resized, cfg.maxSize, cfg.maxWidth, cfg.maxHeight, cfg.minSize, cfg.minWidth, cfg.minHeight)) {
+	if (!img->resizeToLimits(resized, cfg.resizeCtx, cfg.maxSize, cfg.maxWidth, cfg.maxHeight, cfg.minSize, cfg.minWidth, cfg.minHeight)) {
 		util::warn("failed to resize image '%s'", srcName);
 		return false;
 	}

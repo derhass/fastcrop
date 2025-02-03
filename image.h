@@ -60,6 +60,14 @@ struct TImageInfo {
 	}
 };
 
+struct TImageResizeCtx {
+	unsigned int unused;
+
+	TImageResizeCtx() noexcept :
+		unused(0)
+	{}
+};
+
 class CImage {
 	private:
 		TImageInfo info;
@@ -93,9 +101,9 @@ class CImage {
 		bool adopt(const TImageInfo& newInfo, void *dataPtr) noexcept;
 		bool makeChecker(const TImageInfo& newInfo) noexcept;
 
-		bool resizeTo(CImage& dst, size_t w, size_t h) const noexcept;
-		bool resizeToLimits(CImage& dst, size_t maxSize, size_t maxWidth, size_t maxHeight, size_t minSize, size_t minWidth, size_t minHeight) const noexcept;
-		bool resize(size_t w, size_t h) noexcept;
+		bool resizeTo(CImage& dst, const TImageResizeCtx& ctx, size_t w, size_t h) const noexcept;
+		bool resizeToLimits(CImage& dst, const TImageResizeCtx& ctx, size_t maxSize, size_t maxWidth, size_t maxHeight, size_t minSize, size_t minWidth, size_t minHeight) const noexcept;
+		bool resize(const TImageResizeCtx& ctx, size_t w, size_t h) noexcept;
 
 		bool transposeTo(CImage& dst, bool flip) const noexcept;
 		bool transpose(bool flip) noexcept;

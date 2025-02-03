@@ -72,6 +72,7 @@ struct TConfig {
 	std::string outputDir;
 	std::string outputType;
 	std::string postprocessCommand;
+	TImageResizeCtx resizeCtx;
 
 	TConfig() :
 		maxSize(1080),
