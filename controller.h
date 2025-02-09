@@ -75,7 +75,7 @@ struct TConfig {
 	TImageResizeCtx resizeCtx;
 
 	TConfig() :
-		maxSize(1080),
+		maxSize(1344),
 		maxWidth(0),
 		maxHeight(0),
 		minSize(0),
