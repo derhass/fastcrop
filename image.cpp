@@ -304,10 +304,13 @@ static bool resizeSWS(const uint8_t *src, const TImageInfo& info, uint8_t *dst, 
 		util::warn("resizeSWS: failed to get context");
 		return false;
 	}
-	if (av_opt_set(swsctx,"gamma", "1",AV_OPT_SEARCH_CHILDREN)) {
+	/*
+	if (av_opt_set(swsctx,"gamma", "0",AV_OPT_SEARCH_CHILDREN)) {
 		util::warn("resizeSWS: setting gamma failed");
 		return false;
 	}
+	sws_init_context(swsctx, NULL, NULL);
+	*/
 	
 	/*
 	int *inv_table;
